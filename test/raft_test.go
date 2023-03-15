@@ -1,11 +1,13 @@
 package SurfTest
 
 import (
-	"cse224/proj5/pkg/surfstore"
+	// "cse224/proj5/pkg/surfstore"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	"testing"
 )
 
+// Test whether leader is set correctly and nodes will step down if 
+// another node is a leader
 func TestRaftSetLeader(t *testing.T) {
 	//Setup
 	cfgPath := "./config_files/3nodes.txt"
