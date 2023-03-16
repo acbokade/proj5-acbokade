@@ -8,7 +8,7 @@ import (
 	"net"
 	"os"
 	"sync"
-	"fmt"
+	// "fmt"
 
 	"google.golang.org/grpc"
 )
@@ -50,7 +50,6 @@ func NewRaftServer(id int64, config RaftConfig) (*RaftSurfstore, error) {
 		log:            make([]*UpdateOperation, 0),
 		isCrashed:      false,
 		isCrashedMutex: &isCrashedMutex,
-		// Added for discussion
 		id:             id,
 		peers:          config.RaftAddrs,
 		pendingCommits: make([]*chan bool, 0),
@@ -70,7 +69,7 @@ func ServeRaftServer(server *RaftSurfstore) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Raft Server listening")
+	// fmt.Println("Raft Server listening")
 	err = grpcServer.Serve(listener)
 	if err != nil {
 		return err

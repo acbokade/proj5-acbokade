@@ -5,7 +5,7 @@ import (
 	// "fmt"
 	"sync"
 	// "errors"
-	"fmt"
+	// "fmt"
 	"google.golang.org/grpc"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	"math"
@@ -18,7 +18,7 @@ type RaftSurfstore struct {
 	term          int64
 	log           []*UpdateOperation
 
-	metaStore *MetaStore
+	metaStore      *MetaStore
 	id             int64
 	peers          []string
 	pendingCommits []*chan bool
@@ -119,9 +119,6 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	}
 	s.isLeaderMutex.RUnlock()
 	// fmt.Println("logic of updateFile")
-	// Append entry to the log
-	// Call append entry to all of the nodes
-	// if yes from 4, commit entry (update metadata dict) and reply back to client
 
 	// Append entry to the local log
 	s.log = append(s.log, &UpdateOperation{
@@ -165,12 +162,10 @@ func (s *RaftSurfstore) sendToAllFollowersInParallel(ctx context.Context) {
 			break
 		}
 		// fmt.Println("total appends responses", totalAppends, totalResponses)
-		if totalAppends > len(s.peers)/2 {
-			// TODO put on correct channel
-			*s.pendingCommits[s.commitIndex] <- true
-			s.commitIndex++
-			// TODO update commit index correctly
-		}
+	}
+	if totalAppends > len(s.peers)/2 {
+		*s.pendingCommits[s.commitIndex] <- true
+		s.commitIndex++
 	}
 }
 
@@ -178,29 +173,25 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 	var prevLogTerm int64 = 0
 	var prevLogIndex int64 = -1
 	// fmt.Println("log", s.log)
-	if len(s.log) >= 2 {
+	if s.commitIndex > 0 && len(s.log) >= 2 {
 		prevLogTerm = s.log[s.commitIndex-1].Term
 		prevLogIndex = s.commitIndex - 1
 	}
 	dummyAppendEntriesInput := AppendEntryInput{
-		Term: s.term,
-		// Put right values
+		Term:         s.term,
 		PrevLogTerm:  prevLogTerm,
 		PrevLogIndex: prevLogIndex,
 		Entries:      s.log,
 		LeaderCommit: s.commitIndex,
 	}
-	// TODO check all errors
 	var conn *grpc.ClientConn
 	var err error
 	conn, err = grpc.Dial(addr, grpc.WithInsecure())
-	// fmt.Println("dail done")
 	if err != nil {
 		response <- false
 		return
 	}
 	client := NewRaftSurfstoreClient(conn)
-	// fmt.Println("to call appendEntries")
 	appendEntryOutput, err := client.AppendEntries(ctx, &dummyAppendEntriesInput)
 	// outputTerm := appendEntryOutput.Term
 	if err == nil {
@@ -212,6 +203,8 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 		} else {
 			response <- false
 		}
+	} else {
+		response <- false
 	}
 }
 
@@ -228,7 +221,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// fmt.Println("append entry entered")
 	s.isCrashedMutex.RLock()
 	if s.isCrashed {
-		fmt.Println("crashed server")
+		// fmt.Println("crashed server")
 		s.isCrashedMutex.RUnlock()
 		return nil, ERR_SERVER_CRASHED
 	}
@@ -239,7 +232,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	entries := input.Entries
 	leaderCommitIndex := input.LeaderCommit
 	// TODO: actually check entries (Term can differ)
-	fmt.Println("leaderTerm, sterm sid", leaderTerm, s.term, s.id)
+	// fmt.Println("leaderTerm, sterm sid", leaderTerm, s.term, s.id)
 	if leaderTerm > s.term {
 		s.isLeaderMutex.Lock()
 		s.isLeader = false
@@ -261,37 +254,22 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	if int64(len(s.log)) <= prevLogIndex || (prevLogIndex != -1 && s.log[prevLogIndex].Term != prevLogTerm) {
 		// False response (?: The client would send another RPC with prevLogIndex - 1)
 		// fmt.Println("case 2")
-		var term int64 = 0
-		if prevLogIndex < int64(len(s.log)) {
-			term = s.log[prevLogIndex].Term
-		}
+		// var term int64 = 0
+		// if prevLogIndex < int64(len(s.log)) {
+		// 	term = s.log[prevLogIndex].Term
+		// }
 		return &AppendEntryOutput{
 			ServerId:     s.id,
-			Term:         term,
+			Term:         s.term,
 			Success:      false,
 			MatchedIndex: -1,
 		}, nil
 	}
 	// fmt.Println("case 3 onwards")
 	// Case 3
-	// curIndex := prevLogIndex + 1
-	// var iter int64 = 0
-	// fmt.Println("curIndex", curIndex)
-	// for {
-	// 	index := curIndex + iter
-	// 	if (index >= int64(len(s.log))-1) {
-	// 		break
-	// 	}
-	// 	if (int64(len(s.log))-1 >= index) && (s.log[index].Term != leaderTerm) {
-	// 		// Delete existing entry and all the other entries
-	// 		s.log = s.log[:index]
-	// 		break
-	// 	}
-	// 	// fmt.Println("index", index)
-	// }
 	updateEntries := make([]*UpdateOperation, 0)
 	for idx, entry := range s.log {
-		s.commitIndex = int64(idx) - 1
+		s.commitIndex = int64(idx) - 1 //?
 		if idx >= len(entries) {
 			// delete remaining
 			s.log = s.log[:idx]
@@ -309,22 +287,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	}
 	// fmt.Println("case 4 onwards")
 	// Case 4
-	// iter = 0
-	// for {
-	// 	if len(entries) == 0 {
-	// 		break
-	// 	}
-	// 	index := curIndex + iter
-	// 	if int64(len(s.log)) >= index+1 {
-	// 		s.log[index] = entries[iter]
-	// 	} else {
-	// 		s.log = append(s.log, entries[iter])
-	// 	}
-	// 	iter++
-	// 	if iter >= int64(len(entries)) {
-	// 		break
-	// 	}
-	// }
 	s.log = append(s.log, updateEntries...)
 
 	// fmt.Println("case 5 onwards")
@@ -332,7 +294,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	if s.commitIndex < leaderCommitIndex {
 		s.commitIndex = int64(math.Min(float64(leaderCommitIndex), float64(len(s.log)-1)))
 	}
-	// s.log = input.Entries
 	// Term can also differ
 	for s.lastApplied+1 <= s.commitIndex {
 		entry := s.log[s.lastApplied+1]
@@ -360,27 +321,6 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	s.isLeader = true
 	s.isLeaderMutex.Unlock()
 	s.term++
-	// dummyAppendEntriesInput := AppendEntryInput{
-	// 	Term: s.term,
-	// 	// put right values
-	// 	PrevLogTerm:  s.log[len(s.log)-1].Term,
-	// 	PrevLogIndex: int64(len(s.log) - 1),
-	// 	Entries:      make([]*UpdateOperation, 0),
-	// 	LeaderCommit: s.lastApplied,
-	// }
-	// // Send initial empty AppendEntries call to all other peers
-	// for idx, peerAddr := range s.peers {
-	// 	if int64(idx) == s.id {
-	// 		continue
-	// 	}
-	// 	conn, err := grpc.Dial(peerAddr, grpc.WithInsecure())
-	// 	// Crash
-	// 	if err != nil {
-	// 		continue
-	// 	}
-	// 	client := NewRaftSurfstoreClient(conn)
-	// 	_, _ = client.AppendEntries(ctx, &dummyAppendEntriesInput)
-	// }
 	// TODO update state
 	return &Success{Flag: true}, nil
 }
@@ -408,7 +348,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 		prevLogTerm = s.log[prevLogIndex].Term
 	}
 	dummyAppendEntriesInput := AppendEntryInput{
-		Term: s.term,
+		Term:         s.term,
 		PrevLogTerm:  prevLogTerm,
 		PrevLogIndex: prevLogIndex,
 		Entries:      s.log,
@@ -426,7 +366,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 			continue
 		}
 		client := NewRaftSurfstoreClient(conn)
-		fmt.Println("s.id", s.id, "sent ", dummyAppendEntriesInput.Term, "to", idx)
+		// fmt.Println("s.id", s.id, "sent ", dummyAppendEntriesInput.Term, "to", idx)
 		appendEntryOutput, _ := client.AppendEntries(ctx, &dummyAppendEntriesInput)
 		// otherServerId := appendEntryOutput.ServerId
 		// fmt.Println("appendEntryOutput", appendEntryOutput)
