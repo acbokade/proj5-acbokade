@@ -48,11 +48,15 @@ func TestSyncTwoClientsSameFileLeaderFailure(t *testing.T) {
 	}
 	// fmt.Println("sync client done")
 	test.Clients[0].SendHeartbeat(test.Context, &emptypb.Empty{})
+	// fmt.Println("states of servers")
+	test.Clients[0].GetInternalState(test.Context, &emptypb.Empty{})
+	test.Clients[1].GetInternalState(test.Context, &emptypb.Empty{})
 
 	test.Clients[0].Crash(test.Context, &emptypb.Empty{})
+	// fmt.Println("0 crashed")
 	test.Clients[1].SetLeader(test.Context, &emptypb.Empty{})
 	test.Clients[1].SendHeartbeat(test.Context, &emptypb.Empty{})
-
+	// fmt.Println("1 leader set and send heartbeat done")
 	//client2 syncs
 	err = SyncClient("localhost:8080", "test1", BLOCK_SIZE, cfgPath)
 	if err != nil {

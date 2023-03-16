@@ -164,8 +164,8 @@ func (s *RaftSurfstore) sendToAllFollowersInParallel(ctx context.Context) {
 		// fmt.Println("total appends responses", totalAppends, totalResponses)
 	}
 	if totalAppends > len(s.peers)/2 {
-		*s.pendingCommits[s.commitIndex] <- true
 		s.commitIndex++
+		*s.pendingCommits[s.commitIndex] <- true
 	}
 }
 
@@ -232,6 +232,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	entries := input.Entries
 	leaderCommitIndex := input.LeaderCommit
 	// TODO: actually check entries (Term can differ)
+	// fmt.Println("length of entries sid", len(entries), s.id)
 	// fmt.Println("leaderTerm, sterm sid", leaderTerm, s.term, s.id)
 	if leaderTerm > s.term {
 		s.isLeaderMutex.Lock()
@@ -242,7 +243,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// Case 1
 	if leaderTerm < s.term {
 		// False response
-		// fmt.Println("case 1")
+		// fmt.Println("case 1", s.id)
 		return &AppendEntryOutput{
 			ServerId:     s.id,
 			Term:         s.term,
@@ -251,9 +252,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		}, nil
 	}
 	// Case 2
-	if int64(len(s.log)) <= prevLogIndex || (prevLogIndex != -1 && s.log[prevLogIndex].Term != prevLogTerm) {
+	// fmt.Println("prevLogIndex prevLogTerm lengthlog", prevLogIndex, prevLogTerm, len(s.log))
+	if prevLogIndex >= 0 && len(s.log) >= 1 && s.log[prevLogIndex].Term != prevLogTerm {
 		// False response (?: The client would send another RPC with prevLogIndex - 1)
-		// fmt.Println("case 2")
+		// fmt.Println("case 2", s.id)
 		// var term int64 = 0
 		// if prevLogIndex < int64(len(s.log)) {
 		// 	term = s.log[prevLogIndex].Term
@@ -265,11 +267,11 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 			MatchedIndex: -1,
 		}, nil
 	}
-	// fmt.Println("case 3 onwards")
+	// fmt.Println("case 3 onwards", s.id)
 	// Case 3
 	updateEntries := make([]*UpdateOperation, 0)
 	for idx, entry := range s.log {
-		s.commitIndex = int64(idx) - 1 //?
+		// s.commitIndex = int64(idx)//?
 		if idx >= len(entries) {
 			// delete remaining
 			s.log = s.log[:idx]
@@ -285,11 +287,16 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 			updateEntries = entries[idx+1:]
 		}
 	}
-	// fmt.Println("case 4 onwards")
+	if len(s.log) == 0 {
+		updateEntries = entries[:]
+	}
+	// fmt.Println("updateEntries length slog length sid", len(updateEntries), len(s.log), s.id)
+	// fmt.Println("case 4 onwards", s.id)
 	// Case 4
 	s.log = append(s.log, updateEntries...)
+	s.commitIndex = int64(len(s.log)) - 1
 
-	// fmt.Println("case 5 onwards")
+	// fmt.Println("case 5 onwards", s.id)
 	// Case 5
 	if s.commitIndex < leaderCommitIndex {
 		s.commitIndex = int64(math.Min(float64(leaderCommitIndex), float64(len(s.log)-1)))
@@ -327,6 +334,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 
 func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
 	// Check crash
+	// fmt.Println(s.id, "send heartbeat")
 	s.isCrashedMutex.RLock()
 	if s.isCrashed {
 		s.isCrashedMutex.RUnlock()
@@ -343,9 +351,11 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	s.isLeaderMutex.RUnlock()
 
 	var prevLogTerm int64 = 0
-	var prevLogIndex int64 = s.commitIndex - 1
-	if prevLogIndex != -1 && prevLogIndex <= int64(len(s.log)-1) {
-		prevLogTerm = s.log[prevLogIndex].Term
+	var prevLogIndex int64 = - 1
+	// fmt.Println("prevLogIndex commitIndex prevLogterm", prevLogIndex, s.commitIndex, prevLogTerm)
+	if s.commitIndex > 0 && len(s.log) >= 2 {
+		prevLogTerm = s.log[s.commitIndex-1].Term
+		prevLogIndex = s.commitIndex - 1
 	}
 	dummyAppendEntriesInput := AppendEntryInput{
 		Term:         s.term,
@@ -427,6 +437,10 @@ func (s *RaftSurfstore) GetInternalState(ctx context.Context, empty *emptypb.Emp
 		Log:      s.log,
 		MetaMap:  fileInfoMap,
 	}
+	// fmt.Println("isLeader", s.isLeader)
+	// fmt.Println("Term", s.term)
+	// fmt.Println("Log", s.log)
+	// fmt.Println("MetaMap", fileInfoMap)
 	s.isLeaderMutex.RUnlock()
 
 	return state, nil

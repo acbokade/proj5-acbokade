@@ -53,8 +53,8 @@ func NewRaftServer(id int64, config RaftConfig) (*RaftSurfstore, error) {
 		id:             id,
 		peers:          config.RaftAddrs,
 		pendingCommits: make([]*chan bool, 0),
-		commitIndex:    0,
-		lastApplied:    0,
+		commitIndex:    -1,
+		lastApplied:    -1,
 	}
 
 	return &server, nil
