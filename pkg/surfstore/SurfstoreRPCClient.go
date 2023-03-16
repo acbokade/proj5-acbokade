@@ -101,116 +101,113 @@ func (surfClient *RPCClient) GetBlockHashes(blockStoreAddr string, blockHashes *
 }
 
 func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error {
-	for {
-		for _, addr := range surfClient.MetaStoreAddrs {
-			conn, err := grpc.Dial(addr, grpc.WithInsecure())
-			// Crash
-			if err != nil {
-				continue
-			}
-			rpcClient := NewRaftSurfstoreClient(conn)
-			// perform the call
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			defer cancel()
-			fileInfoMap, err := rpcClient.GetFileInfoMap(ctx, &emptypb.Empty{})
-			if err != nil {
-				conn.Close()
-				if err == ERR_SERVER_CRASHED{
-					return err
-				}
-				continue
-			}
-			*serverFileInfoMap = fileInfoMap.FileInfoMap
-			return nil
+	for _, addr := range surfClient.MetaStoreAddrs {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		// Crash
+		if err != nil {
+			continue
 		}
+		rpcClient := NewRaftSurfstoreClient(conn)
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		fileInfoMap, err := rpcClient.GetFileInfoMap(ctx, &emptypb.Empty{})
+		if err != nil {
+			conn.Close()
+			// if err == ERR_SERVER_CRASHED{
+			// 	return err
+			// }
+			continue
+		}
+		*serverFileInfoMap = fileInfoMap.FileInfoMap
+		return nil
 	}
+	return nil
 }
 
 func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error {
-	for {
-		for _, addr := range surfClient.MetaStoreAddrs {
-			conn, err := grpc.Dial(addr, grpc.WithInsecure())
-			// Crash
-			if err != nil {
-				continue
-			}
-			rpcClient := NewRaftSurfstoreClient(conn)
-			// perform the call
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			defer cancel()
-			version, err := rpcClient.UpdateFile(ctx, fileMetaData)
-			if err != nil {
-				conn.Close()
-				if err == ERR_SERVER_CRASHED{
-					return err
-				}
-				continue
-			}
-			*latestVersion = version.Version
-			return nil
+	for _, addr := range surfClient.MetaStoreAddrs {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		// Crash
+		if err != nil {
+			continue
 		}
+		rpcClient := NewRaftSurfstoreClient(conn)
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		version, err := rpcClient.UpdateFile(ctx, fileMetaData)
+		if err != nil {
+			conn.Close()
+			// if err == ERR_SERVER_CRASHED{
+			// 	return err
+			// }
+			continue
+		}
+		*latestVersion = version.Version
+		return nil
 	}
+	return nil
+
 }
 
 func (surfClient *RPCClient) GetBlockStoreMap(blockHashesIn []string, blockStoreMap *map[string][]string) error {
-	for {
-		for _, addr := range surfClient.MetaStoreAddrs {
-			conn, err := grpc.Dial(addr, grpc.WithInsecure())
-			// Crash
-			if err != nil {
-				continue
-			}
-			rpcClient := NewRaftSurfstoreClient(conn)
-			// perform the call
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			defer cancel()
-			var blockHashes *BlockHashes = &BlockHashes{Hashes: blockHashesIn}
-			retBlockStoreMap, err := rpcClient.GetBlockStoreMap(ctx, blockHashes)
-			if err != nil {
-				conn.Close()
-				if err == ERR_SERVER_CRASHED{
-					return err
-				}
-				continue
-			}
-			(*blockStoreMap) = make(map[string][]string)
-			for serverAddr, blockHashes := range retBlockStoreMap.BlockStoreMap {
-				_, exists := (*blockStoreMap)[serverAddr]
-				if exists {
-					(*blockStoreMap)[serverAddr] = append((*blockStoreMap)[serverAddr], blockHashes.Hashes...)
-				} else {
-					(*blockStoreMap)[serverAddr] = append((*blockStoreMap)[serverAddr], blockHashes.Hashes...)
-				}
-			}
-			return nil
+	for _, addr := range surfClient.MetaStoreAddrs {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		// Crash
+		if err != nil {
+			continue
 		}
+		rpcClient := NewRaftSurfstoreClient(conn)
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		var blockHashes *BlockHashes = &BlockHashes{Hashes: blockHashesIn}
+		retBlockStoreMap, err := rpcClient.GetBlockStoreMap(ctx, blockHashes)
+		if err != nil {
+			conn.Close()
+			// if err == ERR_SERVER_CRASHED{
+			// 	return err
+			// }
+			continue
+		}
+		(*blockStoreMap) = make(map[string][]string)
+		for serverAddr, blockHashes := range retBlockStoreMap.BlockStoreMap {
+			_, exists := (*blockStoreMap)[serverAddr]
+			if exists {
+				(*blockStoreMap)[serverAddr] = append((*blockStoreMap)[serverAddr], blockHashes.Hashes...)
+			} else {
+				(*blockStoreMap)[serverAddr] = append((*blockStoreMap)[serverAddr], blockHashes.Hashes...)
+			}
+		}
+		return nil
 	}
+	return nil
 }
 
 func (surfClient *RPCClient) GetBlockStoreAddrs(blockStoreAddrs *[]string) error {
-	for {
-		for _, addr := range surfClient.MetaStoreAddrs {
-			conn, err := grpc.Dial(addr, grpc.WithInsecure())
-			// Crash
-			if err != nil {
-				continue
-			}
-			rpcClient := NewRaftSurfstoreClient(conn)
-			// perform the call
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			defer cancel()
-			retBlockStoreAddr, err := rpcClient.GetBlockStoreAddrs(ctx, &emptypb.Empty{})
-			if err != nil {
-				conn.Close()
-				if err == ERR_SERVER_CRASHED{
-					return err
-				}
-				continue
-			}
-			*blockStoreAddrs = append(*blockStoreAddrs, retBlockStoreAddr.BlockStoreAddrs...)
-			return nil
+	for _, addr := range surfClient.MetaStoreAddrs {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		// Crash
+		if err != nil {
+			continue
 		}
+		rpcClient := NewRaftSurfstoreClient(conn)
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		retBlockStoreAddr, err := rpcClient.GetBlockStoreAddrs(ctx, &emptypb.Empty{})
+		if err != nil {
+			conn.Close()
+			// if err == ERR_SERVER_CRASHED{
+			// 	return err
+			// }
+			continue
+		}
+		*blockStoreAddrs = append(*blockStoreAddrs, retBlockStoreAddr.BlockStoreAddrs...)
+		return nil
 	}
+	return nil
 }
 
 // This line guarantees all method for RPCClient are implemented
