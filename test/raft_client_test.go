@@ -1,10 +1,14 @@
 package SurfTest
 
 import (
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	// "fmt"
 	"os"
 	"testing"
+
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+
 	//	"time"
+	// "log"
 )
 
 // A creates and syncs with a file. B creates and syncs with same file. A syncs again.
@@ -42,7 +46,7 @@ func TestSyncTwoClientsSameFileLeaderFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Sync failed")
 	}
-
+	// fmt.Println("sync client done")
 	test.Clients[0].SendHeartbeat(test.Context, &emptypb.Empty{})
 
 	test.Clients[0].Crash(test.Context, &emptypb.Empty{})

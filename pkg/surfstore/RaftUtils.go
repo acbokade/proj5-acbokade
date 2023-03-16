@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"fmt"
 
 	"google.golang.org/grpc"
 )
@@ -69,6 +70,7 @@ func ServeRaftServer(server *RaftSurfstore) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Raft Server listening")
 	err = grpcServer.Serve(listener)
 	if err != nil {
 		return err

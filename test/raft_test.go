@@ -4,6 +4,8 @@ import (
 	// "cse224/proj5/pkg/surfstore"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	"testing"
+	// "log"
+	"fmt"
 )
 
 // Test whether leader is set correctly and nodes will step down if 
@@ -17,7 +19,6 @@ func TestRaftSetLeader(t *testing.T) {
 	// TEST
 	leaderIdx := 0
 	test.Clients[leaderIdx].SetLeader(test.Context, &emptypb.Empty{})
-
 	// heartbeat
 	for _, server := range test.Clients {
 		server.SendHeartbeat(test.Context, &emptypb.Empty{})
@@ -26,6 +27,7 @@ func TestRaftSetLeader(t *testing.T) {
 	for idx, server := range test.Clients {
 		// all should have the leaders term
 		state, _ := server.GetInternalState(test.Context, &emptypb.Empty{})
+		fmt.Println("state", idx, state)
 		if state == nil {
 			t.Fatalf("Could not get state")
 		}

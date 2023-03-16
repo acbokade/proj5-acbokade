@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 	"time"
-
+	"fmt"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -102,11 +102,11 @@ func (surfClient *RPCClient) GetBlockHashes(blockStoreAddr string, blockHashes *
 
 func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error {
 	// Block until majority of nodes are active
-	for {
-		if checkMajorityOfNodesActive(surfClient) {
-			break
-		}
-	}
+	// for {
+	// 	if checkMajorityOfNodesActive(surfClient) {
+	// 		break
+	// 	}
+	// }
 	for {
 		for _, addr := range surfClient.MetaStoreAddrs {
 			conn, err := grpc.Dial(addr, grpc.WithInsecure())
@@ -148,11 +148,11 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 
 func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error {
 	// Block until majority of nodes are active
-	for {
-		if checkMajorityOfNodesActive(surfClient) {
-			break
-		}
-	}
+	// for {
+	// 	if checkMajorityOfNodesActive(surfClient) {
+	// 		break
+	// 	}
+	// }
 	for {
 		for _, addr := range surfClient.MetaStoreAddrs {
 			conn, err := grpc.Dial(addr, grpc.WithInsecure())
@@ -253,11 +253,11 @@ func (surfClient *RPCClient) GetBlockStoreMap(blockHashesIn []string, blockStore
 
 func (surfClient *RPCClient) GetBlockStoreAddrs(blockStoreAddrs *[]string) error {
 	// Block until majority of nodes are active
-	for {
-		if checkMajorityOfNodesActive(surfClient) {
-			break
-		}
-	}
+	// for {
+	// 	if checkMajorityOfNodesActive(surfClient) {
+	// 		break
+	// 	}
+	// }
 	for {
 		for _, addr := range surfClient.MetaStoreAddrs {
 			conn, err := grpc.Dial(addr, grpc.WithInsecure())
@@ -353,6 +353,7 @@ func NewSurfstoreRPCClient(addrs []string, baseDir string, blockSize int) RPCCli
 			log.Fatal("Error while creating index db file", err)
 		}
 	}
+	fmt.Println("created rpc client")
 	return RPCClient{
 		MetaStoreAddrs: addrs,
 		BaseDir:        baseDir,

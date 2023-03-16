@@ -72,5 +72,6 @@ func main() {
 	}
 
 	rpcClient := surfstore.NewSurfstoreRPCClient(addrs.RaftAddrs, baseDir, blockSize)
+	// fmt.Println("sync to start")
 	surfstore.ClientSync(rpcClient)
 }

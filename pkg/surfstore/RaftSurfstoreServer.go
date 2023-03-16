@@ -5,10 +5,10 @@ import (
 	// "fmt"
 	"sync"
 	// "errors"
-	"math"
-
+	"fmt"
 	"google.golang.org/grpc"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	"math"
 )
 
 // TODO Add fields you need here
@@ -19,22 +19,20 @@ type RaftSurfstore struct {
 	log           []*UpdateOperation
 
 	metaStore *MetaStore
-
-	/*--------------- Chaos Monkey --------------*/
-	isCrashed      bool
-	isCrashedMutex *sync.RWMutex
-	UnimplementedRaftSurfstoreServer
-	// Added for discussion
 	id             int64
-	leaderId       int64
 	peers          []string
 	pendingCommits []*chan bool
 	commitIndex    int64
 	lastApplied    int64
+	/*--------------- Chaos Monkey --------------*/
+	isCrashed      bool
+	isCrashedMutex *sync.RWMutex
+	UnimplementedRaftSurfstoreServer
 }
 
 func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty) (*FileInfoMap, error) {
 	// Check crash
+	// fmt.Println("server GetFileInfoMap", s.isCrashed, s.isLeader)
 	s.isCrashedMutex.RLock()
 	if s.isCrashed {
 		s.isCrashedMutex.RUnlock()
@@ -48,6 +46,12 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 		return nil, ERR_NOT_LEADER
 	}
 	s.isLeaderMutex.RUnlock()
+	// Check if majority of nodes are active, if not, block
+	for {
+		if s.checkMajorityOfNodesActive() {
+			break
+		}
+	}
 	return s.metaStore.GetFileInfoMap(ctx, empty)
 }
 
@@ -66,6 +70,12 @@ func (s *RaftSurfstore) GetBlockStoreMap(ctx context.Context, hashes *BlockHashe
 		return nil, ERR_NOT_LEADER
 	}
 	s.isLeaderMutex.RUnlock()
+	// Check if majority of nodes are active, if not, block
+	for {
+		if s.checkMajorityOfNodesActive() {
+			break
+		}
+	}
 	return s.metaStore.GetBlockStoreMap(ctx, hashes)
 }
 
@@ -84,7 +94,13 @@ func (s *RaftSurfstore) GetBlockStoreAddrs(ctx context.Context, empty *emptypb.E
 		return nil, ERR_NOT_LEADER
 	}
 	s.isLeaderMutex.RUnlock()
-	return s.GetBlockStoreAddrs(ctx, empty)
+	// Check if majority of nodes are active, if not, block
+	for {
+		if s.checkMajorityOfNodesActive() {
+			break
+		}
+	}
+	return s.metaStore.GetBlockStoreAddrs(ctx, empty)
 }
 
 func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) (*Version, error) {
@@ -102,13 +118,12 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 		return nil, ERR_NOT_LEADER
 	}
 	s.isLeaderMutex.RUnlock()
-
+	// fmt.Println("logic of updateFile")
 	// Append entry to the log
 	// Call append entry to all of the nodes
 	// if yes from 4, commit entry (update metadata dict) and reply back to client
 
 	// Append entry to the local log
-	// Doubt: Concurrency?
 	s.log = append(s.log, &UpdateOperation{
 		Term:         s.term,
 		FileMetaData: filemeta,
@@ -118,9 +133,9 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	// Send entry to all followers in parallel
 	go s.sendToAllFollowersInParallel(ctx)
 	// Keep trying indefinitely (even after responding) ** rely on sendhearbeat
-
 	// Commit the entry once majority of followers have it in their log
 	commit := <-commitChan
+	// fmt.Println("received commit from commitChan")
 	// Once committed, apply to the state machine
 	if commit {
 		return s.metaStore.UpdateFile(ctx, filemeta)
@@ -149,21 +164,23 @@ func (s *RaftSurfstore) sendToAllFollowersInParallel(ctx context.Context) {
 		if totalResponses == len(s.peers) {
 			break
 		}
-	}
-	if totalAppends > len(s.peers)/2 {
-		// TODO put on correct channel
-		*s.pendingCommits[len(s.log)-1] <- true
-		// TODO update commit index correctly
-		s.commitIndex = int64(len(s.log)) - 1
+		// fmt.Println("total appends responses", totalAppends, totalResponses)
+		if totalAppends > len(s.peers)/2 {
+			// TODO put on correct channel
+			*s.pendingCommits[s.commitIndex] <- true
+			s.commitIndex++
+			// TODO update commit index correctly
+		}
 	}
 }
 
 func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, response chan bool) {
-	var prevLogTerm int64 = 1
-	var prevLogIndex int64 = 0
+	var prevLogTerm int64 = 0
+	var prevLogIndex int64 = -1
+	// fmt.Println("log", s.log)
 	if len(s.log) >= 2 {
-		prevLogTerm = s.log[len(s.log)-2].Term
-		prevLogIndex = int64(len(s.log) - 2)
+		prevLogTerm = s.log[s.commitIndex-1].Term
+		prevLogIndex = s.commitIndex - 1
 	}
 	dummyAppendEntriesInput := AppendEntryInput{
 		Term: s.term,
@@ -176,23 +193,25 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 	// TODO check all errors
 	var conn *grpc.ClientConn
 	var err error
-	for {
-		conn, err = grpc.Dial(addr, grpc.WithInsecure())
-		if err != nil {
-			break
-		}
+	conn, err = grpc.Dial(addr, grpc.WithInsecure())
+	// fmt.Println("dail done")
+	if err != nil {
+		response <- false
+		return
 	}
 	client := NewRaftSurfstoreClient(conn)
+	// fmt.Println("to call appendEntries")
 	appendEntryOutput, err := client.AppendEntries(ctx, &dummyAppendEntriesInput)
 	// outputTerm := appendEntryOutput.Term
-	outputSuccess := appendEntryOutput.Success
-	// outputServerId := appendEntryOutput.ServerId
-	// outputMatchedIndex := appendEntryOutput.MatchedIndex
-	if outputSuccess {
-		// TODO check output of append entries
-		response <- true
-	} else {
-		response <- false
+	if err == nil {
+		// fmt.Println("appendEntryOutput", appendEntryOutput)
+		outputSuccess := appendEntryOutput.Success
+		if outputSuccess {
+			// TODO check output of append entries
+			response <- true
+		} else {
+			response <- false
+		}
 	}
 }
 
@@ -206,8 +225,10 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 // of last new entry)
 func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInput) (*AppendEntryOutput, error) {
 	// Check crash
+	// fmt.Println("append entry entered")
 	s.isCrashedMutex.RLock()
 	if s.isCrashed {
+		fmt.Println("crashed server")
 		s.isCrashedMutex.RUnlock()
 		return nil, ERR_SERVER_CRASHED
 	}
@@ -217,9 +238,18 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	prevLogTerm := input.PrevLogTerm
 	entries := input.Entries
 	leaderCommitIndex := input.LeaderCommit
+	// TODO: actually check entries (Term can differ)
+	fmt.Println("leaderTerm, sterm sid", leaderTerm, s.term, s.id)
+	if leaderTerm > s.term {
+		s.isLeaderMutex.Lock()
+		s.isLeader = false
+		s.isLeaderMutex.Unlock()
+		s.term = leaderTerm
+	}
 	// Case 1
 	if leaderTerm < s.term {
 		// False response
+		// fmt.Println("case 1")
 		return &AppendEntryOutput{
 			ServerId:     s.id,
 			Term:         s.term,
@@ -228,62 +258,94 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		}, nil
 	}
 	// Case 2
-	if int64(len(s.log)) <= prevLogIndex || s.log[prevLogIndex].Term != prevLogTerm {
+	if int64(len(s.log)) <= prevLogIndex || (prevLogIndex != -1 && s.log[prevLogIndex].Term != prevLogTerm) {
 		// False response (?: The client would send another RPC with prevLogIndex - 1)
+		// fmt.Println("case 2")
+		var term int64 = 0
+		if prevLogIndex < int64(len(s.log)) {
+			term = s.log[prevLogIndex].Term
+		}
 		return &AppendEntryOutput{
 			ServerId:     s.id,
-			Term:         s.log[prevLogIndex].Term,
+			Term:         term,
 			Success:      false,
 			MatchedIndex: -1,
 		}, nil
 	}
+	// fmt.Println("case 3 onwards")
 	// Case 3
-	curIndex := prevLogIndex + 1
-	var iter int64 = 0
-	for {
-		index := curIndex + iter
-		if (int64(len(s.log))-1 >= index) && (s.log[index].Term != leaderTerm) {
-			// Delete existing entry and all the other entries
-			s.log = s.log[:index]
+	// curIndex := prevLogIndex + 1
+	// var iter int64 = 0
+	// fmt.Println("curIndex", curIndex)
+	// for {
+	// 	index := curIndex + iter
+	// 	if (index >= int64(len(s.log))-1) {
+	// 		break
+	// 	}
+	// 	if (int64(len(s.log))-1 >= index) && (s.log[index].Term != leaderTerm) {
+	// 		// Delete existing entry and all the other entries
+	// 		s.log = s.log[:index]
+	// 		break
+	// 	}
+	// 	// fmt.Println("index", index)
+	// }
+	updateEntries := make([]*UpdateOperation, 0)
+	for idx, entry := range s.log {
+		s.commitIndex = int64(idx) - 1
+		if idx >= len(entries) {
+			// delete remaining
+			s.log = s.log[:idx]
 			break
 		}
+		if !SameOperation(entry, entries[idx]) || entry.Term != entries[idx].Term {
+			s.log = s.log[:idx]
+			updateEntries = entries[idx:]
+			break
+		}
+		// Last index reached
+		if idx == len(s.log)-1 {
+			updateEntries = entries[idx+1:]
+		}
 	}
+	// fmt.Println("case 4 onwards")
 	// Case 4
-	iter = 0
-	for {
-		if len(entries) == 0 {
-			break
-		}
-		index := curIndex + iter
-		if int64(len(s.log)) >= index+1 {
-			s.log[index] = entries[iter]
-		} else {
-			s.log = append(s.log, entries[iter])
-		}
-		iter++
-		if iter >= int64(len(entries)) {
-			break
-		}
-	}
-	// TODO: actually check entries (Term can differ)
-	if leaderTerm > s.term {
-		s.isLeaderMutex.Lock()
-		defer s.isLeaderMutex.Unlock()
-		s.isLeader = false
-		s.term = input.Term
-	}
+	// iter = 0
+	// for {
+	// 	if len(entries) == 0 {
+	// 		break
+	// 	}
+	// 	index := curIndex + iter
+	// 	if int64(len(s.log)) >= index+1 {
+	// 		s.log[index] = entries[iter]
+	// 	} else {
+	// 		s.log = append(s.log, entries[iter])
+	// 	}
+	// 	iter++
+	// 	if iter >= int64(len(entries)) {
+	// 		break
+	// 	}
+	// }
+	s.log = append(s.log, updateEntries...)
+
+	// fmt.Println("case 5 onwards")
 	// Case 5
 	if s.commitIndex < leaderCommitIndex {
 		s.commitIndex = int64(math.Min(float64(leaderCommitIndex), float64(len(s.log)-1)))
 	}
 	// s.log = input.Entries
 	// Term can also differ
-	for s.lastApplied <= s.commitIndex {
+	for s.lastApplied+1 <= s.commitIndex {
 		entry := s.log[s.lastApplied+1]
 		s.metaStore.UpdateFile(ctx, entry.FileMetaData)
 		s.lastApplied++
 	}
-	return nil, nil
+	// fmt.Println("last case appendentry")
+	return &AppendEntryOutput{
+		ServerId:     s.id,
+		Term:         s.term,
+		Success:      true,
+		MatchedIndex: -1,
+	}, nil
 }
 
 func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
@@ -295,32 +357,32 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	}
 	s.isCrashedMutex.RUnlock()
 	s.isLeaderMutex.Lock()
-	defer s.isLeaderMutex.Unlock()
 	s.isLeader = true
+	s.isLeaderMutex.Unlock()
 	s.term++
-	dummyAppendEntriesInput := AppendEntryInput{
-		Term: s.term,
-		// put right values
-		PrevLogTerm:  s.log[len(s.log)-1].Term,
-		PrevLogIndex: int64(len(s.log) - 1),
-		Entries:      make([]*UpdateOperation, 0),
-		LeaderCommit: s.lastApplied,
-	}
-	// Send initial empty AppendEntries call to all other peers
-	for idx, peerAddr := range s.peers {
-		if int64(idx) == s.id {
-			continue
-		}
-		conn, err := grpc.Dial(peerAddr, grpc.WithInsecure())
-		// Crash
-		if err != nil {
-			continue
-		}
-		client := NewRaftSurfstoreClient(conn)
-		_, _ = client.AppendEntries(ctx, &dummyAppendEntriesInput)
-	}
+	// dummyAppendEntriesInput := AppendEntryInput{
+	// 	Term: s.term,
+	// 	// put right values
+	// 	PrevLogTerm:  s.log[len(s.log)-1].Term,
+	// 	PrevLogIndex: int64(len(s.log) - 1),
+	// 	Entries:      make([]*UpdateOperation, 0),
+	// 	LeaderCommit: s.lastApplied,
+	// }
+	// // Send initial empty AppendEntries call to all other peers
+	// for idx, peerAddr := range s.peers {
+	// 	if int64(idx) == s.id {
+	// 		continue
+	// 	}
+	// 	conn, err := grpc.Dial(peerAddr, grpc.WithInsecure())
+	// 	// Crash
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	client := NewRaftSurfstoreClient(conn)
+	// 	_, _ = client.AppendEntries(ctx, &dummyAppendEntriesInput)
+	// }
 	// TODO update state
-	return nil, nil
+	return &Success{Flag: true}, nil
 }
 
 func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
@@ -334,19 +396,23 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	// Check leader
 	// If not a leader, do nothing
 	s.isLeaderMutex.RLock()
-	if s.isLeader {
+	if !s.isLeader {
 		s.isLeaderMutex.RUnlock()
 		return &Success{Flag: true}, nil
 	}
 	s.isLeaderMutex.RUnlock()
 
+	var prevLogTerm int64 = 0
+	var prevLogIndex int64 = s.commitIndex - 1
+	if prevLogIndex != -1 && prevLogIndex <= int64(len(s.log)-1) {
+		prevLogTerm = s.log[prevLogIndex].Term
+	}
 	dummyAppendEntriesInput := AppendEntryInput{
 		Term: s.term,
-		// Put right values
-		PrevLogTerm:  s.log[len(s.log)-1].Term,
-		PrevLogIndex: int64(len(s.log) - 1),
-		Entries:      make([]*UpdateOperation, 0),
-		LeaderCommit: s.lastApplied,
+		PrevLogTerm:  prevLogTerm,
+		PrevLogIndex: prevLogIndex,
+		Entries:      s.log,
+		LeaderCommit: s.commitIndex,
 	}
 	// Contact all followers and send some AppendEntries call
 	for idx, addr := range s.peers {
@@ -360,17 +426,20 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 			continue
 		}
 		client := NewRaftSurfstoreClient(conn)
-		appendEntryOutput, err := client.AppendEntries(ctx, &dummyAppendEntriesInput)
-
+		fmt.Println("s.id", s.id, "sent ", dummyAppendEntriesInput.Term, "to", idx)
+		appendEntryOutput, _ := client.AppendEntries(ctx, &dummyAppendEntriesInput)
 		// otherServerId := appendEntryOutput.ServerId
-		otherTerm := appendEntryOutput.Term
-		// otherSuccess := appendEntryOutput.Success
-		// otherMatchedIndex := appendEntryOutput.MatchedIndex
-		if otherTerm > s.term {
-			// Step down as leader
-			s.isLeaderMutex.Lock()
-			s.isLeader = false
-			s.isLeaderMutex.Unlock()
+		// fmt.Println("appendEntryOutput", appendEntryOutput)
+		if appendEntryOutput != nil {
+			otherTerm := appendEntryOutput.Term
+			// otherSuccess := appendEntryOutput.Success
+			// otherMatchedIndex := appendEntryOutput.MatchedIndex
+			if otherTerm > s.term {
+				// Step down as leader
+				s.isLeaderMutex.Lock()
+				s.isLeader = false
+				s.isLeaderMutex.Unlock()
+			}
 		}
 	}
 	return &Success{Flag: true}, nil
@@ -394,6 +463,21 @@ func (s *RaftSurfstore) Restore(ctx context.Context, _ *emptypb.Empty) (*Success
 	return &Success{Flag: true}, nil
 }
 
+func (s *RaftSurfstore) checkMajorityOfNodesActive() bool {
+	nServers := len(s.peers)
+	majority := int64((nServers + 1) / 2)
+	active := 0
+	for _, addr := range s.peers {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			continue
+		}
+		active++
+		conn.Close()
+	}
+	return active >= int(majority)
+}
+
 func (s *RaftSurfstore) GetInternalState(ctx context.Context, empty *emptypb.Empty) (*RaftInternalState, error) {
 	fileInfoMap, _ := s.metaStore.GetFileInfoMap(ctx, empty)
 	s.isLeaderMutex.RLock()
@@ -406,6 +490,43 @@ func (s *RaftSurfstore) GetInternalState(ctx context.Context, empty *emptypb.Emp
 	s.isLeaderMutex.RUnlock()
 
 	return state, nil
+}
+
+func SameOperation(op1, op2 *UpdateOperation) bool {
+	if op1 == nil && op2 == nil {
+		return true
+	}
+	if op1 == nil || op2 == nil {
+		return false
+	}
+	if op1.Term != op2.Term {
+		return false
+	}
+	if op1.FileMetaData == nil && op2.FileMetaData != nil ||
+		op1.FileMetaData != nil && op2.FileMetaData == nil {
+		return false
+	}
+	if op1.FileMetaData.Version != op2.FileMetaData.Version {
+		return false
+	}
+	if !SameHashList(op1.FileMetaData.BlockHashList, op2.FileMetaData.BlockHashList) {
+		return false
+	}
+	return true
+}
+
+func SameHashList(list1, list2 []string) bool {
+	if len(list1) != len(list2) {
+		return false
+	}
+
+	for i := 0; i < len(list1); i++ {
+		if list1[i] != list2[i] {
+			return false
+		}
+	}
+
+	return true
 }
 
 var _ RaftSurfstoreInterface = new(RaftSurfstore)
