@@ -167,6 +167,9 @@ func (s *RaftSurfstore) sendToAllFollowersInParallel(ctx context.Context) {
 		if result {
 			totalAppends++
 		}
+		if totalAppends > len(s.peers)/2 {
+			break
+		}
 		if totalResponses == len(s.peers) {
 			break
 		}
@@ -205,7 +208,13 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 		return
 	}
 	client := NewRaftSurfstoreClient(conn)
-	appendEntryOutput, err := client.AppendEntries(ctx, &dummyAppendEntriesInput)
+	var appendEntryOutput *AppendEntryOutput
+	for {
+		appendEntryOutput, err = client.AppendEntries(ctx, &dummyAppendEntriesInput)
+		if err == nil {
+			break
+		}
+	}
 	// outputTerm := appendEntryOutput.Term
 	if err == nil {
 		// fmt.Println("appendEntryOutput", appendEntryOutput)
@@ -216,8 +225,6 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 		} else {
 			response <- false
 		}
-	} else {
-		response <- false
 	}
 }
 
