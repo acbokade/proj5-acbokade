@@ -46,7 +46,6 @@ func TestSyncTwoClientsSameFileLeaderFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Sync failed")
 	}
-	// fmt.Println("sync client done")
 	test.Clients[0].SendHeartbeat(test.Context, &emptypb.Empty{})
 	// fmt.Println("states of servers")
 	test.Clients[0].GetInternalState(test.Context, &emptypb.Empty{})

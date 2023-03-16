@@ -31,6 +31,7 @@ service RaftSurfstore {
     rpc AppendEntries(AppendEntryInput) returns (AppendEntryOutput) {}
     rpc SetLeader(google.protobuf.Empty) returns (Success) {}
     rpc SendHeartbeat(google.protobuf.Empty) returns (Success) {}
+    rpc GetCrashStatus(google.protobuf.Empty) returns (Success) {}
 
     // metastore
     rpc GetFileInfoMap(google.protobuf.Empty) returns (FileInfoMap) {}

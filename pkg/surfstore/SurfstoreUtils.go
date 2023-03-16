@@ -50,7 +50,7 @@ func ClientSync(client RPCClient) {
 		equal remote index version.
 	*/
 	// Scan each file in the base directory and compute file's hash list.
-	// fmt.Println("client sync started")
+	
 	filesHashListMap := make(map[string][]string) // key - fileName, value - hashlist
 	allFiles, err := ioutil.ReadDir(client.BaseDir)
 	if err != nil {
@@ -87,6 +87,7 @@ func ClientSync(client RPCClient) {
 	// log.Println("filesHashListMap", filesHashListMap)
 
 	// Load local index data from local db file
+	// fmt.Println("to call loadmeta")
 	localIndex, err := LoadMetaFromMetaFile(client.BaseDir)
 	if err != nil {
 		log.Println("Error while loading metadata from database", err)
@@ -96,8 +97,11 @@ func ClientSync(client RPCClient) {
 	// Connect to server and download update FileInfoMap (remote index)
 	var remoteIndex = make(map[string]*FileMetaData)
 	// fmt.Println("to call fileInfoMap")
-	client.GetFileInfoMap(&remoteIndex)
-	// fmt.Println("done call fileInfoMap")
+	err = client.GetFileInfoMap(&remoteIndex)
+	if err != nil {
+		log.Fatal("Error while getting file info map", err)
+	}
+	// fmt.Println("done fileInfoMpa")
 	// log.Println("remoteIndex", remoteIndex)
 
 	// Files which are present in remoteIndex and not in localIndex needs to be downloaded
@@ -138,7 +142,10 @@ func ClientSync(client RPCClient) {
 	// fmt.Println(filesToDeleteLocally)
 	// Get BlockStoreAddr
 	var blockStoreAddrs []string
-	client.GetBlockStoreAddrs(&blockStoreAddrs)
+	err = client.GetBlockStoreAddrs(&blockStoreAddrs)
+	if err != nil {
+		log.Fatal("Error while getting block store addrs", err)
+	}
 	// fmt.Println("client sync blockStoreAddrs", blockStoreAddrs)
 
 	// Check the blocks to be downloaded

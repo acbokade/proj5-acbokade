@@ -9,6 +9,7 @@ type RaftInterface interface {
 	AppendEntries(ctx context.Context, input *AppendEntryInput) (*AppendEntryOutput, error)
 	SetLeader(ctx context.Context, _ *emptypb.Empty) (*Success, error)
 	SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*Success, error)
+	GetCrashStatus(ctx context.Context, _ *emptypb.Empty) (*Success, error)
 }
 
 type RaftTestingInterface interface {

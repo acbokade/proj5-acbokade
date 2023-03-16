@@ -919,7 +919,7 @@ var file_pkg_surfstore_SurfStore_proto_rawDesc = []byte{
 	0x72, 0x73, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74,
 	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x1a, 0x2e, 0x73, 0x75, 0x72,
 	0x66, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x53, 0x74, 0x6f, 0x72,
-	0x65, 0x41, 0x64, 0x64, 0x72, 0x73, 0x22, 0x00, 0x32, 0xa8, 0x05, 0x0a, 0x0d, 0x52, 0x61, 0x66,
+	0x65, 0x41, 0x64, 0x64, 0x72, 0x73, 0x22, 0x00, 0x32, 0xe8, 0x05, 0x0a, 0x0d, 0x52, 0x61, 0x66,
 	0x74, 0x53, 0x75, 0x72, 0x66, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x12, 0x4c, 0x0a, 0x0d, 0x41, 0x70,
 	0x70, 0x65, 0x6e, 0x64, 0x45, 0x6e, 0x74, 0x72, 0x69, 0x65, 0x73, 0x12, 0x1b, 0x2e, 0x73, 0x75,
 	0x72, 0x66, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x41, 0x70, 0x70, 0x65, 0x6e, 0x64, 0x45, 0x6e,
@@ -931,6 +931,10 @@ var file_pkg_surfstore_SurfStore_proto_rawDesc = []byte{
 	0x73, 0x75, 0x72, 0x66, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73,
 	0x73, 0x22, 0x00, 0x12, 0x3d, 0x0a, 0x0d, 0x53, 0x65, 0x6e, 0x64, 0x48, 0x65, 0x61, 0x72, 0x74,
 	0x62, 0x65, 0x61, 0x74, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x12, 0x2e, 0x73,
+	0x75, 0x72, 0x66, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73,
+	0x22, 0x00, 0x12, 0x3e, 0x0a, 0x0e, 0x47, 0x65, 0x74, 0x43, 0x72, 0x61, 0x73, 0x68, 0x53, 0x74,
+	0x61, 0x74, 0x75, 0x73, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72,
 	0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x12, 0x2e, 0x73,
 	0x75, 0x72, 0x66, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73,
 	0x22, 0x00, 0x12, 0x42, 0x0a, 0x0e, 0x47, 0x65, 0x74, 0x46, 0x69, 0x6c, 0x65, 0x49, 0x6e, 0x66,
@@ -1019,33 +1023,35 @@ var file_pkg_surfstore_SurfStore_proto_depIdxs = []int32{
 	10, // 16: surfstore.RaftSurfstore.AppendEntries:input_type -> surfstore.AppendEntryInput
 	16, // 17: surfstore.RaftSurfstore.SetLeader:input_type -> google.protobuf.Empty
 	16, // 18: surfstore.RaftSurfstore.SendHeartbeat:input_type -> google.protobuf.Empty
-	16, // 19: surfstore.RaftSurfstore.GetFileInfoMap:input_type -> google.protobuf.Empty
-	4,  // 20: surfstore.RaftSurfstore.UpdateFile:input_type -> surfstore.FileMetaData
-	1,  // 21: surfstore.RaftSurfstore.GetBlockStoreMap:input_type -> surfstore.BlockHashes
-	16, // 22: surfstore.RaftSurfstore.GetBlockStoreAddrs:input_type -> google.protobuf.Empty
-	16, // 23: surfstore.RaftSurfstore.GetInternalState:input_type -> google.protobuf.Empty
-	16, // 24: surfstore.RaftSurfstore.Restore:input_type -> google.protobuf.Empty
-	16, // 25: surfstore.RaftSurfstore.Crash:input_type -> google.protobuf.Empty
-	2,  // 26: surfstore.BlockStore.GetBlock:output_type -> surfstore.Block
-	3,  // 27: surfstore.BlockStore.PutBlock:output_type -> surfstore.Success
-	1,  // 28: surfstore.BlockStore.HasBlocks:output_type -> surfstore.BlockHashes
-	1,  // 29: surfstore.BlockStore.GetBlockHashes:output_type -> surfstore.BlockHashes
-	5,  // 30: surfstore.MetaStore.GetFileInfoMap:output_type -> surfstore.FileInfoMap
-	6,  // 31: surfstore.MetaStore.UpdateFile:output_type -> surfstore.Version
-	7,  // 32: surfstore.MetaStore.GetBlockStoreMap:output_type -> surfstore.BlockStoreMap
-	8,  // 33: surfstore.MetaStore.GetBlockStoreAddrs:output_type -> surfstore.BlockStoreAddrs
-	11, // 34: surfstore.RaftSurfstore.AppendEntries:output_type -> surfstore.AppendEntryOutput
-	3,  // 35: surfstore.RaftSurfstore.SetLeader:output_type -> surfstore.Success
-	3,  // 36: surfstore.RaftSurfstore.SendHeartbeat:output_type -> surfstore.Success
-	5,  // 37: surfstore.RaftSurfstore.GetFileInfoMap:output_type -> surfstore.FileInfoMap
-	6,  // 38: surfstore.RaftSurfstore.UpdateFile:output_type -> surfstore.Version
-	7,  // 39: surfstore.RaftSurfstore.GetBlockStoreMap:output_type -> surfstore.BlockStoreMap
-	8,  // 40: surfstore.RaftSurfstore.GetBlockStoreAddrs:output_type -> surfstore.BlockStoreAddrs
-	13, // 41: surfstore.RaftSurfstore.GetInternalState:output_type -> surfstore.RaftInternalState
-	3,  // 42: surfstore.RaftSurfstore.Restore:output_type -> surfstore.Success
-	3,  // 43: surfstore.RaftSurfstore.Crash:output_type -> surfstore.Success
-	26, // [26:44] is the sub-list for method output_type
-	8,  // [8:26] is the sub-list for method input_type
+	16, // 19: surfstore.RaftSurfstore.GetCrashStatus:input_type -> google.protobuf.Empty
+	16, // 20: surfstore.RaftSurfstore.GetFileInfoMap:input_type -> google.protobuf.Empty
+	4,  // 21: surfstore.RaftSurfstore.UpdateFile:input_type -> surfstore.FileMetaData
+	1,  // 22: surfstore.RaftSurfstore.GetBlockStoreMap:input_type -> surfstore.BlockHashes
+	16, // 23: surfstore.RaftSurfstore.GetBlockStoreAddrs:input_type -> google.protobuf.Empty
+	16, // 24: surfstore.RaftSurfstore.GetInternalState:input_type -> google.protobuf.Empty
+	16, // 25: surfstore.RaftSurfstore.Restore:input_type -> google.protobuf.Empty
+	16, // 26: surfstore.RaftSurfstore.Crash:input_type -> google.protobuf.Empty
+	2,  // 27: surfstore.BlockStore.GetBlock:output_type -> surfstore.Block
+	3,  // 28: surfstore.BlockStore.PutBlock:output_type -> surfstore.Success
+	1,  // 29: surfstore.BlockStore.HasBlocks:output_type -> surfstore.BlockHashes
+	1,  // 30: surfstore.BlockStore.GetBlockHashes:output_type -> surfstore.BlockHashes
+	5,  // 31: surfstore.MetaStore.GetFileInfoMap:output_type -> surfstore.FileInfoMap
+	6,  // 32: surfstore.MetaStore.UpdateFile:output_type -> surfstore.Version
+	7,  // 33: surfstore.MetaStore.GetBlockStoreMap:output_type -> surfstore.BlockStoreMap
+	8,  // 34: surfstore.MetaStore.GetBlockStoreAddrs:output_type -> surfstore.BlockStoreAddrs
+	11, // 35: surfstore.RaftSurfstore.AppendEntries:output_type -> surfstore.AppendEntryOutput
+	3,  // 36: surfstore.RaftSurfstore.SetLeader:output_type -> surfstore.Success
+	3,  // 37: surfstore.RaftSurfstore.SendHeartbeat:output_type -> surfstore.Success
+	3,  // 38: surfstore.RaftSurfstore.GetCrashStatus:output_type -> surfstore.Success
+	5,  // 39: surfstore.RaftSurfstore.GetFileInfoMap:output_type -> surfstore.FileInfoMap
+	6,  // 40: surfstore.RaftSurfstore.UpdateFile:output_type -> surfstore.Version
+	7,  // 41: surfstore.RaftSurfstore.GetBlockStoreMap:output_type -> surfstore.BlockStoreMap
+	8,  // 42: surfstore.RaftSurfstore.GetBlockStoreAddrs:output_type -> surfstore.BlockStoreAddrs
+	13, // 43: surfstore.RaftSurfstore.GetInternalState:output_type -> surfstore.RaftInternalState
+	3,  // 44: surfstore.RaftSurfstore.Restore:output_type -> surfstore.Success
+	3,  // 45: surfstore.RaftSurfstore.Crash:output_type -> surfstore.Success
+	27, // [27:46] is the sub-list for method output_type
+	8,  // [8:27] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name

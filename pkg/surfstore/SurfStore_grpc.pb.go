@@ -411,6 +411,7 @@ type RaftSurfstoreClient interface {
 	AppendEntries(ctx context.Context, in *AppendEntryInput, opts ...grpc.CallOption) (*AppendEntryOutput, error)
 	SetLeader(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Success, error)
 	SendHeartbeat(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Success, error)
+	GetCrashStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Success, error)
 	// metastore
 	GetFileInfoMap(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*FileInfoMap, error)
 	UpdateFile(ctx context.Context, in *FileMetaData, opts ...grpc.CallOption) (*Version, error)
@@ -451,6 +452,15 @@ func (c *raftSurfstoreClient) SetLeader(ctx context.Context, in *emptypb.Empty, 
 func (c *raftSurfstoreClient) SendHeartbeat(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Success, error) {
 	out := new(Success)
 	err := c.cc.Invoke(ctx, "/surfstore.RaftSurfstore/SendHeartbeat", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *raftSurfstoreClient) GetCrashStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Success, error) {
+	out := new(Success)
+	err := c.cc.Invoke(ctx, "/surfstore.RaftSurfstore/GetCrashStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -528,6 +538,7 @@ type RaftSurfstoreServer interface {
 	AppendEntries(context.Context, *AppendEntryInput) (*AppendEntryOutput, error)
 	SetLeader(context.Context, *emptypb.Empty) (*Success, error)
 	SendHeartbeat(context.Context, *emptypb.Empty) (*Success, error)
+	GetCrashStatus(context.Context, *emptypb.Empty) (*Success, error)
 	// metastore
 	GetFileInfoMap(context.Context, *emptypb.Empty) (*FileInfoMap, error)
 	UpdateFile(context.Context, *FileMetaData) (*Version, error)
@@ -552,6 +563,9 @@ func (UnimplementedRaftSurfstoreServer) SetLeader(context.Context, *emptypb.Empt
 }
 func (UnimplementedRaftSurfstoreServer) SendHeartbeat(context.Context, *emptypb.Empty) (*Success, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendHeartbeat not implemented")
+}
+func (UnimplementedRaftSurfstoreServer) GetCrashStatus(context.Context, *emptypb.Empty) (*Success, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCrashStatus not implemented")
 }
 func (UnimplementedRaftSurfstoreServer) GetFileInfoMap(context.Context, *emptypb.Empty) (*FileInfoMap, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFileInfoMap not implemented")
@@ -637,6 +651,24 @@ func _RaftSurfstore_SendHeartbeat_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RaftSurfstoreServer).SendHeartbeat(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RaftSurfstore_GetCrashStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RaftSurfstoreServer).GetCrashStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/surfstore.RaftSurfstore/GetCrashStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RaftSurfstoreServer).GetCrashStatus(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -785,6 +817,10 @@ var RaftSurfstore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendHeartbeat",
 			Handler:    _RaftSurfstore_SendHeartbeat_Handler,
+		},
+		{
+			MethodName: "GetCrashStatus",
+			Handler:    _RaftSurfstore_GetCrashStatus_Handler,
 		},
 		{
 			MethodName: "GetFileInfoMap",
