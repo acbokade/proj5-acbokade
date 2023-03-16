@@ -214,6 +214,14 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 		if err == nil {
 			break
 		}
+		// Check crash
+		s.isCrashedMutex.RLock()
+		if s.isCrashed {
+			response <- false
+			s.isCrashedMutex.RUnlock()
+			return
+		}
+		s.isCrashedMutex.RUnlock()
 	}
 	// outputTerm := appendEntryOutput.Term
 	if err == nil {

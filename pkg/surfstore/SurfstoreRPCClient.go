@@ -115,6 +115,9 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 			fileInfoMap, err := rpcClient.GetFileInfoMap(ctx, &emptypb.Empty{})
 			if err != nil {
 				conn.Close()
+				if err == ERR_SERVER_CRASHED{
+					return err
+				}
 				continue
 			}
 			*serverFileInfoMap = fileInfoMap.FileInfoMap
@@ -138,6 +141,9 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 			version, err := rpcClient.UpdateFile(ctx, fileMetaData)
 			if err != nil {
 				conn.Close()
+				if err == ERR_SERVER_CRASHED{
+					return err
+				}
 				continue
 			}
 			*latestVersion = version.Version
@@ -162,6 +168,9 @@ func (surfClient *RPCClient) GetBlockStoreMap(blockHashesIn []string, blockStore
 			retBlockStoreMap, err := rpcClient.GetBlockStoreMap(ctx, blockHashes)
 			if err != nil {
 				conn.Close()
+				if err == ERR_SERVER_CRASHED{
+					return err
+				}
 				continue
 			}
 			(*blockStoreMap) = make(map[string][]string)
@@ -193,6 +202,9 @@ func (surfClient *RPCClient) GetBlockStoreAddrs(blockStoreAddrs *[]string) error
 			retBlockStoreAddr, err := rpcClient.GetBlockStoreAddrs(ctx, &emptypb.Empty{})
 			if err != nil {
 				conn.Close()
+				if err == ERR_SERVER_CRASHED{
+					return err
+				}
 				continue
 			}
 			*blockStoreAddrs = append(*blockStoreAddrs, retBlockStoreAddr.BlockStoreAddrs...)
