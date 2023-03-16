@@ -98,8 +98,8 @@ func ClientSync(client RPCClient) {
 	var remoteIndex = make(map[string]*FileMetaData)
 	// fmt.Println("to call fileInfoMap")
 	err = client.GetFileInfoMap(&remoteIndex)
-	if err != nil {
-		log.Fatal("Error while getting file info map", err)
+	if err == ERR_SERVER_CRASHED {
+		log.Fatal("Server crashed")
 	}
 	// fmt.Println("done fileInfoMpa")
 	// log.Println("remoteIndex", remoteIndex)
@@ -143,8 +143,8 @@ func ClientSync(client RPCClient) {
 	// Get BlockStoreAddr
 	var blockStoreAddrs []string
 	err = client.GetBlockStoreAddrs(&blockStoreAddrs)
-	if err != nil {
-		log.Fatal("Error while getting block store addrs", err)
+	if err == ERR_SERVER_CRASHED {
+		log.Fatal("Server crashed")
 	}
 	// fmt.Println("client sync blockStoreAddrs", blockStoreAddrs)
 
@@ -256,7 +256,10 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	// log.Println("upload hashlist length", len(hashList), len(blockHashToBlockDataMap))
 	var blockStoreMap map[string][]string
 	// log.Println("upload hashList", hashList)
-	client.GetBlockStoreMap(hashList, &blockStoreMap)
+	err = client.GetBlockStoreMap(hashList, &blockStoreMap)
+	if err == ERR_SERVER_CRASHED {
+		log.Fatalf("Server crashed")
+	}
 	// log.Println("upload blockStoreMap", blockStoreMap)
 	revBlockStoreMap := reverseBlockStoreMap(blockStoreMap)
 	// log.Println("upload revBlockStoreMap", revBlockStoreMap)
@@ -290,6 +293,9 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	localFileMetadata := FileMetaData{Filename: fileName, Version: version, BlockHashList: hashList}
 	// fmt.Println("to call updateFile")
 	err = client.UpdateFile(&localFileMetadata, &returnedVersion)
+	if err == ERR_SERVER_CRASHED {
+		log.Fatal("Server crashed")
+	}
 	// log.Println("UpdateFile return version", returnedVersion, err)
 	if err != nil {
 		returnedVersion = -1
@@ -317,6 +323,9 @@ func deleteFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	localFileMetadata := FileMetaData{Filename: fileName, Version: version + 1, BlockHashList: tombstoneHashList}
 	var returnedVersion int32
 	err := client.UpdateFile(&localFileMetadata, &returnedVersion)
+	if err == ERR_SERVER_CRASHED {
+		log.Fatal("Server crashed")
+	}
 	// log.Println("UpdateFile return version", returnedVersion, err)
 	if err != nil || returnedVersion != version+1 {
 		returnedVersion = -1
@@ -359,12 +368,18 @@ func downloadFile(fileName string, client RPCClient, remoteIndex map[string]*Fil
 	}
 	fileContent := ""
 	var blockStoreMap map[string][]string
-	client.GetBlockStoreMap(remoteIndex[fileName].BlockHashList, &blockStoreMap)
+	err = client.GetBlockStoreMap(remoteIndex[fileName].BlockHashList, &blockStoreMap)
+	if err == ERR_SERVER_CRASHED {
+		log.Fatal("Server crashed")
+	}
 	revBlockStoreMap := reverseBlockStoreMap(blockStoreMap)
 	for _, blockHash := range remoteIndex[fileName].BlockHashList {
 		var block Block
 		var blockStoreAddr string = revBlockStoreMap[blockHash]
 		err := client.GetBlock(blockHash, blockStoreAddr, &block)
+		if err != ERR_SERVER_CRASHED {
+			log.Fatal("Server crashed")
+		}
 		if err != nil {
 			log.Println("Error while executing GetBlock call", err)
 		}
