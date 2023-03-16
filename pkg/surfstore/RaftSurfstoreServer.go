@@ -51,7 +51,7 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 	// fmt.Println("server GetFileInfoMap 3")
 	// Check if majority of nodes are active, if not, block
 	for {
-		if s.checkMajorityOfNodesActive(ctx, empty) {
+		if s.checkMajorityOfNodesActive(ctx) {
 			break
 		}
 	}
@@ -75,7 +75,7 @@ func (s *RaftSurfstore) GetBlockStoreMap(ctx context.Context, hashes *BlockHashe
 	s.isLeaderMutex.RUnlock()
 	// Check if majority of nodes are active, if not, block
 	for {
-		if s.checkMajorityOfNodesActive(ctx, new(emptypb.Empty)) {
+		if s.checkMajorityOfNodesActive(ctx) {
 			break
 		}
 	}
@@ -99,7 +99,7 @@ func (s *RaftSurfstore) GetBlockStoreAddrs(ctx context.Context, empty *emptypb.E
 	s.isLeaderMutex.RUnlock()
 	// Check if majority of nodes are active, if not, block
 	for {
-		if s.checkMajorityOfNodesActive(ctx, empty) {
+		if s.checkMajorityOfNodesActive(ctx) {
 			break
 		}
 	}
@@ -239,6 +239,14 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		return nil, ERR_SERVER_CRASHED
 	}
 	s.isCrashedMutex.RUnlock()
+	if input.Term == int64(-100) { // dummy call to check for majority
+		return &AppendEntryOutput{
+			ServerId:     s.id,
+			Term:         s.term,
+			Success:      false,
+			MatchedIndex: -1,
+		}, nil
+	}
 	leaderTerm := input.Term
 	prevLogIndex := input.PrevLogIndex
 	prevLogTerm := input.PrevLogTerm
@@ -425,7 +433,7 @@ func (s *RaftSurfstore) Restore(ctx context.Context, _ *emptypb.Empty) (*Success
 	return &Success{Flag: true}, nil
 }
 
-func (s *RaftSurfstore) checkMajorityOfNodesActive(ctx context.Context, emptypb *emptypb.Empty) bool {
+func (s *RaftSurfstore) checkMajorityOfNodesActive1(ctx context.Context, emptypb *emptypb.Empty) bool {
 	nServers := len(s.peers)
 	majority := int64((nServers + 1) / 2)
 	active := 1
@@ -449,14 +457,40 @@ func (s *RaftSurfstore) checkMajorityOfNodesActive(ctx context.Context, emptypb 
 	return active >= int(majority)
 }
 
-func (s *RaftSurfstore) GetCrashStatus(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
-	// fmt.Println("entered")
-	s.isCrashedMutex.RLock()
-	// fmt.Println("checking crash status of ", s.id)
-	isCrashed := s.isCrashed
-	s.isCrashedMutex.RUnlock()
-	return &Success{Flag: isCrashed}, nil
+func (s *RaftSurfstore) checkMajorityOfNodesActive(ctx context.Context) bool {
+	dummyAppendEntriesInput := AppendEntryInput{
+		Term:         int64(-100), // for dummy call
+		PrevLogTerm:  -1,
+		PrevLogIndex: -1,
+		Entries:      s.log,
+		LeaderCommit: s.commitIndex,
+	}
+	crashedCount := 0
+	for idx, addr := range s.peers {
+		if int64(idx) == s.id {
+			continue
+		}
+		conn, _ := grpc.Dial(addr, grpc.WithInsecure())
+		client := NewRaftSurfstoreClient(conn)
+		_, err := client.AppendEntries(ctx, &dummyAppendEntriesInput)
+		if err == ERR_SERVER_CRASHED {
+			crashedCount++
+		}
+	}
+	if crashedCount <= len(s.peers)/2 {
+		return true
+	}
+	return false
 }
+
+// func (s *RaftSurfstore) GetCrashStatus(ctx context.Context, _ *emptypb.Empty) (*Success, error) {
+// 	// fmt.Println("entered")
+// 	s.isCrashedMutex.RLock()
+// 	// fmt.Println("checking crash status of ", s.id)
+// 	isCrashed := s.isCrashed
+// 	s.isCrashedMutex.RUnlock()
+// 	return &Success{Flag: isCrashed}, nil
+// }
 
 func (s *RaftSurfstore) GetInternalState(ctx context.Context, empty *emptypb.Empty) (*RaftInternalState, error) {
 	fileInfoMap, _ := s.metaStore.GetFileInfoMap(ctx, empty)
