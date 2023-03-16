@@ -131,9 +131,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	go s.sendToAllFollowersInParallel(ctx)
 	// Keep trying indefinitely (even after responding) ** rely on sendhearbeat
 	// Commit the entry once majority of followers have it in their log
-	for s.commitIndex < 0 {
-	}
-	commit := <- *s.pendingCommits[s.commitIndex]
+	commit := <-commitChan
 	// fmt.Println("received commit from commitChan")
 	// Once committed, apply to the state machine
 	if commit {
@@ -168,7 +166,11 @@ func (s *RaftSurfstore) sendToAllFollowersInParallel(ctx context.Context) {
 	}
 	if totalAppends > len(s.peers)/2 {
 		s.commitIndex++
-		*s.pendingCommits[s.commitIndex] <- true
+		// *s.pendingCommits[s.commitIndex] <- true
+		*s.pendingCommits[len(s.pendingCommits)-1] <- true
+	} else {
+		// *s.pendingCommits[s.commitIndex+1] <- false
+		*s.pendingCommits[len(s.pendingCommits)-1] <- false
 	}
 }
 
@@ -354,7 +356,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 	s.isLeaderMutex.RUnlock()
 
 	var prevLogTerm int64 = 0
-	var prevLogIndex int64 = - 1
+	var prevLogIndex int64 = -1
 	// fmt.Println("prevLogIndex commitIndex prevLogterm", prevLogIndex, s.commitIndex, prevLogTerm)
 	if s.commitIndex > 0 && len(s.log) >= 2 {
 		prevLogTerm = s.log[s.commitIndex-1].Term
