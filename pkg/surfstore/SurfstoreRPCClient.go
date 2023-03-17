@@ -4,12 +4,12 @@ import (
 	context "context"
 	"database/sql"
 	// "fmt"
+	"errors"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log"
 	"os"
 	"time"
-	"errors"
 )
 
 type RPCClient struct {
@@ -113,13 +113,9 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		fileInfoMap, err := rpcClient.GetFileInfoMap(ctx, &emptypb.Empty{})
-		// fmt.Println("from client fileInfoMap - ", fileInfoMap)
 		if err != nil {
 			conn.Close()
-			// fmt.Println("err", err)
-			// fmt.Println("*", ctx.Err())
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				// // fmt.println("Is function: Both errors are equal")
 				return ctx.Err()
 			}
 			continue
@@ -243,21 +239,6 @@ func createIndexDbFile(path string) error {
 	return nil
 }
 
-// func checkMajorityOfNodesActive(surfClient *RPCClient) bool {
-// 	nServers := len(surfClient.MetaStoreAddrs)
-// 	majority := int64((nServers + 1) / 2)
-// 	active := 0
-// 	for _, addr := range surfClient.MetaStoreAddrs {
-// 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
-// 		if err != nil {
-// 			continue
-// 		}
-// 		active++
-// 		conn.Close()
-// 	}
-// 	return active >= int(majority)
-// }
-
 // Create an Surfstore RPC client
 func NewSurfstoreRPCClient(addrs []string, baseDir string, blockSize int) RPCClient {
 	outputMetaPath := ConcatPath(baseDir, DEFAULT_META_FILENAME)
@@ -267,38 +248,12 @@ func NewSurfstoreRPCClient(addrs []string, baseDir string, blockSize int) RPCCli
 			log.Fatal("Error while creating index db file", err)
 		}
 	}
-	// // fmt.println("created rpc client")
 	return RPCClient{
 		MetaStoreAddrs: addrs,
 		BaseDir:        baseDir,
 		BlockSize:      blockSize,
 	}
 }
-
-// func connectToLeaderServer(surfClient* RPCClient) (*grpc.ClientConn, error) {
-// 	metaStoreAddrs := surfClient.MetaStoreAddrs
-
-// 	// heartbeat
-// 	for _, server := range test.Clients {
-// 		server.SendHeartbeat(test.Context, &emptypb.Empty{})
-// 	}
-// }
-
-// func establishConnectionToAllServers(surfClient *RPCClient) ([]RaftSurfstoreClient, []*grpc.ClientConn) {
-// 	clients := make([]RaftSurfstoreClient, 0)
-// 	conns := make([]*grpc.ClientConn, 0)
-// 	for _, addr := range surfClient.MetaStoreAddrs {
-// 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
-// 		if err != nil {
-// 			continue
-// 		}
-// 		client := NewRaftSurfstoreClient(conn)
-
-// 		conns = append(conns, conn)
-// 		clients = append(clients, client)
-// 	}
-// 	return clients, conns
-// }
 
 func connectToGrpcServer(storeAddr string) (*grpc.ClientConn, error) {
 	conn, err := grpc.Dial(storeAddr, grpc.WithInsecure())

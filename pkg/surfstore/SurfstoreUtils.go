@@ -52,7 +52,6 @@ func ClientSync(client RPCClient) {
 		equal remote index version.
 	*/
 	// Scan each file in the base directory and compute file's hash list.
-	// fmt.println("entered")
 	filesHashListMap := make(map[string][]string) // key - fileName, value - hashlist
 	allFiles, err := ioutil.ReadDir(client.BaseDir)
 	if err != nil {
@@ -89,7 +88,6 @@ func ClientSync(client RPCClient) {
 	// log.Println("filesHashListMap", filesHashListMap)
 
 	// Load local index data from local db file
-	// // fmt.println("to call loadmeta")
 	localIndex, err := LoadMetaFromMetaFile(client.BaseDir)
 	if err != nil {
 		log.Println("Error while loading metadata from database", err)
@@ -98,20 +96,15 @@ func ClientSync(client RPCClient) {
 
 	// Connect to server and download update FileInfoMap (remote index)
 	var remoteIndex = make(map[string]*FileMetaData)
-	// // fmt.println("to call fileInfoMap")
 	err = client.GetFileInfoMap(&remoteIndex)
 	if errors.Is(err, context.DeadlineExceeded) {
-		// fmt.Println("Majority of servers crashed")
 		log.Fatal("Majority of servers crashed")
 	}
-	// fmt.Println("done fileInfoMap")
-	// log.Println("remoteIndex", remoteIndex)
 
 	// Files which are present in remoteIndex and not in localIndex needs to be downloaded
 	filesToDownload := make(map[string]bool)
 	filesToDelete := make(map[string]bool)
 	filesToDeleteLocally := make(map[string]bool)
-	// // fmt.println("remoteIndex", remoteIndex)
 	for fileName := range remoteIndex {
 		_, exists := localIndex[fileName]
 		if !exists {
@@ -140,16 +133,12 @@ func ClientSync(client RPCClient) {
 			}
 		}
 	}
-	// // fmt.println(filesToDownload)
-	// // fmt.println(filesToDelete)
-	// // fmt.println(filesToDeleteLocally)
 	// Get BlockStoreAddr
 	var blockStoreAddrs []string
 	_ = client.GetBlockStoreAddrs(&blockStoreAddrs)
 	// if err == ERR_SERVER_CRASHED {
 	// 	log.Fatal("Server crashed")
 	// }
-	// fmt.Println("done blockStoreAddrs")
 
 	// Check the blocks to be downloaded
 	for fileToDownload := range filesToDownload {
@@ -164,8 +153,6 @@ func ClientSync(client RPCClient) {
 	// Check the files which are newly added or edited
 	newFilesAdded := make([]string, 0)
 	editedFiles := make([]string, 0)
-	// // fmt.println("newFilesAdded", newFilesAdded)
-	// // fmt.println("editedFiles", editedFiles)
 	for fileName := range filesHashListMap {
 		_, downloadExists := filesToDownload[fileName]
 		_, deleteExists := filesToDelete[fileName]
@@ -207,7 +194,6 @@ func ClientSync(client RPCClient) {
 	filesToUpload := make([]string, 0)
 	filesToUpload = append(filesToUpload, newFilesAdded...)
 	filesToUpload = append(filesToUpload, editedFiles...)
-	// // fmt.println("filesToUpload", filesToUpload)
 	// Upload newly added files
 	for _, fileName := range filesToUpload {
 		returnedVersion, err := uploadFile(fileName, client, localIndex, blockStoreAddrs)
@@ -294,7 +280,6 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	}
 	var returnedVersion int32
 	localFileMetadata := FileMetaData{Filename: fileName, Version: version, BlockHashList: hashList}
-	// // fmt.println("to call updateFile")
 	err = client.UpdateFile(&localFileMetadata, &returnedVersion)
 	// if err == ERR_SERVER_CRASHED {
 	// 	log.Fatal("Server crashed")

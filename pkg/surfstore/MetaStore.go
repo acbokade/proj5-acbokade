@@ -30,16 +30,13 @@ func (m *MetaStore) UpdateFile(ctx context.Context, fileMetaData *FileMetaData) 
 	fileName := fileMetaData.Filename
 	fileVersion := fileMetaData.Version
 	// Acquire read lock
-	// log.Println("server updateFile 1")
 	m.rwMutex.RLock()
 	_, exists := m.FileMetaMap[fileName]
 	m.rwMutex.RUnlock()
-	// log.Println("server updateFile 2")
 	if exists {
 		m.rwMutex.RLock()
 		curFileVersion := m.FileMetaMap[fileName].Version
 		m.rwMutex.RUnlock()
-		// log.Println("server updateFile 3")
 		// Replace the metadata only if the version is 1 greater than current file version
 		if fileVersion == 1+curFileVersion {
 			m.rwMutex.Lock()
@@ -49,7 +46,6 @@ func (m *MetaStore) UpdateFile(ctx context.Context, fileMetaData *FileMetaData) 
 			// Else send version -1 to the client
 			return &Version{Version: -1}, nil
 		}
-		// log.Println("server updateFile 4")
 	} else {
 		m.rwMutex.Lock()
 		m.FileMetaMap[fileName] = fileMetaData
@@ -62,12 +58,9 @@ func (m *MetaStore) GetBlockStoreMap(ctx context.Context, blockHashesIn *BlockHa
 	var blockStoreMap *BlockStoreMap = &BlockStoreMap{}
 	blockStoreMap.BlockStoreMap = make(map[string]*BlockHashes)
 	var blockHashes map[string]*BlockHashes = make(map[string]*BlockHashes)
-	// // fmt.println("GetBlockStoreMap blockHashesIn", blockHashesIn)
-	// log.Println("Metastore blockHashesIn length", len(blockHashesIn.Hashes))
 	for _, blockHashIn := range blockHashesIn.Hashes {
 		m.rwMutex.RLock()
 		responsibleServer := m.ConsistentHashRing.GetResponsibleServer(blockHashIn)
-		// // fmt.println("GetBlockStoreMap responsibleServer", responsibleServer)
 		m.rwMutex.RUnlock()
 		_, exists := blockHashes[responsibleServer]
 		if exists {
@@ -80,25 +73,20 @@ func (m *MetaStore) GetBlockStoreMap(ctx context.Context, blockHashesIn *BlockHa
 	// log.Println("blockHashes", blockHashes)
 	for server, hashList := range blockHashes {
 		_, exists := blockStoreMap.BlockStoreMap[server]
-		// log.Println("**", server, exists)
 		if exists {
 			blockStoreMap.BlockStoreMap[server].Hashes = append(blockStoreMap.BlockStoreMap[server].Hashes, hashList.Hashes...)
 		} else {
 			blockStoreMap.BlockStoreMap[server] = &BlockHashes{Hashes: hashList.Hashes}
 		}
 	}
-	// log.Println("blockStoreMap", blockStoreMap.BlockStoreMap)
 	// blockStoreMap.BlockStoreMap = blockHashes
-	// // fmt.println("GetBlockStoreMap blockStoreMap", blockStoreMap)
 	return blockStoreMap, nil
 }
 
 func (m *MetaStore) GetBlockStoreAddrs(ctx context.Context, _ *emptypb.Empty) (*BlockStoreAddrs, error) {
-	// log.Println("metastore BlockStoreAddrs", m.BlockStoreAddrs)
 	m.rwMutex.RLock()
 	var blockStoreAddrs *BlockStoreAddrs = &BlockStoreAddrs{BlockStoreAddrs: m.BlockStoreAddrs}
 	m.rwMutex.RUnlock()
-	// log.Println("metastore blockStoreAddrs", blockStoreAddrs)
 	return blockStoreAddrs, nil
 }
 
@@ -106,7 +94,6 @@ func (m *MetaStore) GetBlockStoreAddrs(ctx context.Context, _ *emptypb.Empty) (*
 var _ MetaStoreInterface = new(MetaStore)
 
 func NewMetaStore(blockStoreAddrs []string) *MetaStore {
-	// log.Println("meta store ctr BlockStoreAddrs", blockStoreAddrs)
 	return &MetaStore{
 		FileMetaMap:        map[string]*FileMetaData{},
 		BlockStoreAddrs:    blockStoreAddrs,
