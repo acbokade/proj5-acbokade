@@ -294,7 +294,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	}
 	// Case 2
 	// // fmt.println("prevLogIndex prevLogTerm lengthlog", prevLogIndex, prevLogTerm, len(s.log))
-	if prevLogIndex >= 0 && len(s.log) >= 1 && s.log[prevLogIndex].Term != prevLogTerm {
+	if prevLogIndex >= 0 && len(s.log) >= 1 && prevLogIndex < int64(len(s.log)) && s.log[prevLogIndex].Term != prevLogTerm {
 		// False response (?: The client would send another RPC with prevLogIndex - 1)
 		// // fmt.println("case 2", s.id)
 		// var term int64 = 0
