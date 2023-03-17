@@ -425,6 +425,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 				s.isLeaderMutex.Lock()
 				s.isLeader = false
 				s.isLeaderMutex.Unlock()
+				s.term = otherTerm
 			}
 		}
 	}

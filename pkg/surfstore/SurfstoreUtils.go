@@ -97,10 +97,10 @@ func ClientSync(client RPCClient) {
 	// Connect to server and download update FileInfoMap (remote index)
 	var remoteIndex = make(map[string]*FileMetaData)
 	// fmt.Println("to call fileInfoMap")
-	err = client.GetFileInfoMap(&remoteIndex)
-	if err == ERR_SERVER_CRASHED {
-		log.Fatal("Server crashed")
-	}
+	_ = client.GetFileInfoMap(&remoteIndex)
+	// if err == ERR_SERVER_CRASHED {
+	// 	log.Fatal("Server crashed")
+	// }
 	// fmt.Println("done fileInfoMpa")
 	// log.Println("remoteIndex", remoteIndex)
 
