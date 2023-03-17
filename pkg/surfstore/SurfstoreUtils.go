@@ -30,7 +30,6 @@ func areEqualHashLists(first, second []string) bool {
 
 // Implement the logic for a client syncing with the server here.
 func ClientSync(client RPCClient) {
-	// log.Println("sync started")
 
 	/*
 		Download cases:
@@ -85,14 +84,12 @@ func ClientSync(client RPCClient) {
 		file.Close()
 		filesHashListMap[fileName] = hashList
 	}
-	// log.Println("filesHashListMap", filesHashListMap)
 
 	// Load local index data from local db file
 	localIndex, err := LoadMetaFromMetaFile(client.BaseDir)
 	if err != nil {
 		log.Println("Error while loading metadata from database", err)
 	}
-	// log.Println("localIndex", localIndex)
 
 	// Connect to server and download update FileInfoMap (remote index)
 	var remoteIndex = make(map[string]*FileMetaData)
@@ -136,9 +133,6 @@ func ClientSync(client RPCClient) {
 	// Get BlockStoreAddr
 	var blockStoreAddrs []string
 	_ = client.GetBlockStoreAddrs(&blockStoreAddrs)
-	// if err == ERR_SERVER_CRASHED {
-	// 	log.Fatal("Server crashed")
-	// }
 
 	// Check the blocks to be downloaded
 	for fileToDownload := range filesToDownload {
@@ -180,11 +174,6 @@ func ClientSync(client RPCClient) {
 			}
 		}
 	}
-	// log.Println("filesToDownload", filesToDownload)
-	// log.Println("newFilesAdded", newFilesAdded)
-	// log.Println("editedFiles", editedFiles)
-	// log.Println("filesToDelete", filesToDelete)
-	// log.Println("filesToDeleteLocally", filesToDeleteLocally)
 
 	// Check the blocks to be deleted
 	for fileToDelete := range filesToDelete {
@@ -197,7 +186,6 @@ func ClientSync(client RPCClient) {
 	// Upload newly added files
 	for _, fileName := range filesToUpload {
 		returnedVersion, err := uploadFile(fileName, client, localIndex, blockStoreAddrs)
-		// log.Println("returnedVersion", returnedVersion)
 		if err != nil || returnedVersion == -1 {
 			// download only if it exists in remote index
 			_, remoteExists := remoteIndex[fileName]
@@ -211,7 +199,6 @@ func ClientSync(client RPCClient) {
 		// 	// WriteMetaFile(localIndex, client.BaseDir)
 		// }
 	}
-	// log.Println("last localIndex", localIndex)
 	WriteMetaFile(localIndex, client.BaseDir)
 }
 
@@ -242,23 +229,13 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 		hashList = append(hashList, blockHash)
 		blockHashToBlockDataMap[blockHash] = blockData
 	}
-	// log.Println("upload hashlist length", len(hashList), len(blockHashToBlockDataMap))
 	var blockStoreMap map[string][]string
-	// log.Println("upload hashList", hashList)
 	_ = client.GetBlockStoreMap(hashList, &blockStoreMap)
-	// if err == ERR_SERVER_CRASHED {
-	// 	log.Fatalf("Server crashed")
-	// }
-	// log.Println("upload blockStoreMap", blockStoreMap)
 	revBlockStoreMap := reverseBlockStoreMap(blockStoreMap)
-	// log.Println("upload revBlockStoreMap", revBlockStoreMap)
-	// log.Println("upload revBlockStoreMap length", len(revBlockStoreMap))
 	for blockHash, blockData := range blockHashToBlockDataMap {
 		blockSize := int32(len(blockData))
 		blockObject := Block{BlockData: blockData, BlockSize: blockSize}
-		// log.Println("upload blockhash", blockHash)
 		blockStoreAddr := revBlockStoreMap[blockHash]
-		// log.Println("upload blockStoreAddr", blockStoreAddr)
 		var success bool
 		err = client.PutBlock(&blockObject, blockStoreAddr, &success)
 		if err != nil {
@@ -272,7 +249,6 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	if numBlocks == 0 {
 		hashList = append(hashList, EMPTYFILE_HASHVALUE)
 	}
-	// log.Println("All Put blocks done")
 	var version int32 = 1
 	_, localExists := localIndex[fileName]
 	if localExists {
@@ -281,10 +257,6 @@ func uploadFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	var returnedVersion int32
 	localFileMetadata := FileMetaData{Filename: fileName, Version: version, BlockHashList: hashList}
 	err = client.UpdateFile(&localFileMetadata, &returnedVersion)
-	// if err == ERR_SERVER_CRASHED {
-	// 	log.Fatal("Server crashed")
-	// }
-	// log.Println("UpdateFile return version", returnedVersion, err)
 	if err != nil {
 		returnedVersion = -1
 	}
@@ -311,10 +283,6 @@ func deleteFile(fileName string, client RPCClient, localIndex map[string]*FileMe
 	localFileMetadata := FileMetaData{Filename: fileName, Version: version + 1, BlockHashList: tombstoneHashList}
 	var returnedVersion int32
 	err := client.UpdateFile(&localFileMetadata, &returnedVersion)
-	// if err == ERR_SERVER_CRASHED {
-	// 	log.Fatal("Server crashed")
-	// }
-	// log.Println("UpdateFile return version", returnedVersion, err)
 	if err != nil || returnedVersion != version+1 {
 		returnedVersion = -1
 	} else {
@@ -345,10 +313,6 @@ func downloadFile(fileName string, client RPCClient, remoteIndex map[string]*Fil
 	}
 	defer localFile.Close()
 	// Write metadata of file and update localIndex object (not db)
-	// err = WriteMetaFile(remoteIndex, client.BaseDir)
-	// if err != nil {
-	// 	log.Println("Error in updating local index", err)
-	// }
 	localIndex[fileName] = remoteIndex[fileName]
 	// Nothing to write if file is empty
 	if len(remoteIndex[fileName].BlockHashList) == 1 && remoteIndex[fileName].BlockHashList[0] == EMPTYFILE_HASHVALUE {
@@ -357,17 +321,11 @@ func downloadFile(fileName string, client RPCClient, remoteIndex map[string]*Fil
 	fileContent := ""
 	var blockStoreMap map[string][]string
 	_ = client.GetBlockStoreMap(remoteIndex[fileName].BlockHashList, &blockStoreMap)
-	// if err == ERR_SERVER_CRASHED {
-	// 	log.Fatal("Server crashed")
-	// }
 	revBlockStoreMap := reverseBlockStoreMap(blockStoreMap)
 	for _, blockHash := range remoteIndex[fileName].BlockHashList {
 		var block Block
 		var blockStoreAddr string = revBlockStoreMap[blockHash]
 		err := client.GetBlock(blockHash, blockStoreAddr, &block)
-		// if err == ERR_SERVER_CRASHED {
-		// 	log.Fatal("Server crashed")
-		// }
 		if err != nil {
 			log.Println("Error while executing GetBlock call", err)
 		}
@@ -380,10 +338,8 @@ func downloadFile(fileName string, client RPCClient, remoteIndex map[string]*Fil
 func reverseBlockStoreMap(blockStoreMap map[string][]string) map[string]string {
 	var revBlockStoreMap map[string]string = make(map[string]string)
 	for serverAddr, hashes := range blockStoreMap {
-		// log.Println("upload serverAddr: ", serverAddr, "len hashes", len(hashes))
 		for _, hash := range hashes {
 			revBlockStoreMap[hash] = serverAddr
-			// log.Println(hash,"->", serverAddr)
 		}
 	}
 	return revBlockStoreMap

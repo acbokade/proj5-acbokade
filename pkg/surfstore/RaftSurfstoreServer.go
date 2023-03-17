@@ -168,10 +168,8 @@ func (s *RaftSurfstore) sendToAllFollowersInParallel(ctx context.Context) {
 	}
 	if totalAppends > len(s.peers)/2 {
 		s.commitIndex++
-		// *s.pendingCommits[s.commitIndex] <- true
 		*s.pendingCommits[len(s.pendingCommits)-1] <- true
 	} else {
-		// *s.pendingCommits[s.commitIndex+1] <- false
 		*s.pendingCommits[len(s.pendingCommits)-1] <- false
 	}
 }
@@ -213,11 +211,9 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 		}
 		s.isCrashedMutex.RUnlock()
 	}
-	// outputTerm := appendEntryOutput.Term
 	if err == nil {
 		outputSuccess := appendEntryOutput.Success
 		if outputSuccess {
-			// TODO check output of append entries
 			response <- true
 		} else {
 			response <- false
@@ -241,7 +237,8 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 		return nil, ERR_SERVER_CRASHED
 	}
 	s.isCrashedMutex.RUnlock()
-	if input.Term == int64(-100) { // dummy call to check for majority
+	// Return if other server is calling appendEntry for active status (Term = -100)
+	if input.Term == int64(-100) {
 		return &AppendEntryOutput{
 			ServerId:     s.id,
 			Term:         s.term,
@@ -254,7 +251,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	prevLogTerm := input.PrevLogTerm
 	entries := input.Entries
 	leaderCommitIndex := input.LeaderCommit
-	// TODO: actually check entries (Term can differ)
 	if leaderTerm > s.term {
 		s.isLeaderMutex.Lock()
 		s.isLeader = false
@@ -273,7 +269,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	}
 	// Case 2
 	if prevLogIndex >= 0 && len(s.log) >= 1 && prevLogIndex < int64(len(s.log)) && s.log[prevLogIndex].Term != prevLogTerm {
-		// False response (?: The client would send another RPC with prevLogIndex - 1)
+		// False response
 		return &AppendEntryOutput{
 			ServerId:     s.id,
 			Term:         s.term,
@@ -284,13 +280,12 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// Case 3
 	updateEntries := make([]*UpdateOperation, 0)
 	for idx, entry := range s.log {
-		// s.commitIndex = int64(idx)//?
 		if idx >= len(entries) {
-			// delete after conflicting
+			// Delete after conflicting
 			s.log = s.log[:idx]
 			break
 		}
-		// delete after conflicting
+		// Delete after conflicting
 		if !SameOperation(entry, entries[idx]) || entry.Term != entries[idx].Term {
 			s.log = s.log[:idx]
 			updateEntries = entries[idx:]
@@ -307,7 +302,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// Case 4
 	// Append any new entries
 	s.log = append(s.log, updateEntries...)
-	// s.commitIndex = int64(len(s.log)) - 1
 
 	// Case 5
 	if s.commitIndex < leaderCommitIndex {

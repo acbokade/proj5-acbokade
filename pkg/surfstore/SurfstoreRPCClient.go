@@ -217,7 +217,6 @@ func createIndexDbFile(path string) error {
 		log.Fatal("Error During creating file", e)
 		return e
 	}
-	// log.Println("index db created")
 	indexFile.Close()
 	db, err := sql.Open("sqlite3", path)
 	defer db.Close()
@@ -235,7 +234,6 @@ func createIndexDbFile(path string) error {
 		return err
 	}
 	statement.Close()
-	// log.Println("table created")
 	return nil
 }
 

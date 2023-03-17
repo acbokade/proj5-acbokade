@@ -54,7 +54,6 @@ func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 	// remove index.db file if it exists
 	outputMetaPath := filepath.Join(baseDir, DEFAULT_META_FILENAME)
 	if _, err := os.Stat(outputMetaPath); err == nil {
-		// log.Println("***", stat)
 		e := os.Remove(outputMetaPath)
 		if e != nil {
 			log.Fatal("Error during removing index.db file", e)
