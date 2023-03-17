@@ -47,15 +47,15 @@ func TestSyncTwoClientsSameFileLeaderFailure(t *testing.T) {
 		t.Fatalf("Sync failed")
 	}
 	test.Clients[0].SendHeartbeat(test.Context, &emptypb.Empty{})
-	// fmt.Println("states of servers")
+	// // fmt.println("states of servers")
 	test.Clients[0].GetInternalState(test.Context, &emptypb.Empty{})
 	test.Clients[1].GetInternalState(test.Context, &emptypb.Empty{})
 
 	test.Clients[0].Crash(test.Context, &emptypb.Empty{})
-	// fmt.Println("0 crashed")
+	// // fmt.println("0 crashed")
 	test.Clients[1].SetLeader(test.Context, &emptypb.Empty{})
 	test.Clients[1].SendHeartbeat(test.Context, &emptypb.Empty{})
-	// fmt.Println("1 leader set and send heartbeat done")
+	// // fmt.println("1 leader set and send heartbeat done")
 	//client2 syncs
 	err = SyncClient("localhost:8080", "test1", BLOCK_SIZE, cfgPath)
 	if err != nil {
@@ -124,4 +124,66 @@ func TestSyncTwoClientsSameFileLeaderFailure(t *testing.T) {
 	if !c {
 		t.Fatalf("wrong file2 contents at client2")
 	}
+}
+
+// A creates and syncs with a file. B creates and syncs with same file. A syncs again.
+func TestSyncTwoClientsClusterFailure(t *testing.T) {
+	t.Logf("client1 syncs with file1. client2 syncs. majority of the cluster crashes. client2 syncs again.")
+	cfgPath := "./config_files/5nodes.txt"
+	test := InitTest(cfgPath)
+	defer EndTest(test)
+	// 0 leader
+	test.Clients[0].SetLeader(test.Context, &emptypb.Empty{})
+	test.Clients[0].SendHeartbeat(test.Context, &emptypb.Empty{})
+
+	worker1 := InitDirectoryWorker("test0", SRC_PATH)
+	worker2 := InitDirectoryWorker("test1", SRC_PATH)
+	defer worker1.CleanUp()
+	defer worker2.CleanUp()
+
+	//clients add different files
+	file1 := "multi_file1.txt"
+	err := worker1.AddFile(file1)
+	if err != nil {
+		t.FailNow()
+	}
+
+	//client1 syncs
+	err = SyncClient("localhost:8080", "test0", BLOCK_SIZE, cfgPath)
+	if err != nil {
+		t.Fatalf("Sync failed")
+	}
+	// fmt.println("Client 1 sync done")
+	test.Clients[0].SendHeartbeat(test.Context, &emptypb.Empty{})
+	// // // fmt.println("states of servers")
+	// test.Clients[0].GetInternalState(test.Context, &emptypb.Empty{})
+	// test.Clients[1].GetInternalState(test.Context, &emptypb.Empty{})
+
+	// test.Clients[0].Crash(test.Context, &emptypb.Empty{})
+	// // // fmt.println("0 crashed")
+	// test.Clients[1].SetLeader(test.Context, &emptypb.Empty{})
+	// test.Clients[1].SendHeartbeat(test.Context, &emptypb.Empty{})
+	// // fmt.println("1 leader set and send heartbeat done")
+	//client2 syncs
+	err = SyncClient("localhost:8080", "test1", BLOCK_SIZE, cfgPath)
+	// fmt.println("Client 2 sync done")
+	if err != nil {
+		t.Fatalf("Sync failed")
+	}
+
+	// Majority fails
+	// test.Clients[0].Crash(test.Context, &emptypb.Empty{})
+	test.Clients[1].Crash(test.Context, &emptypb.Empty{})
+	test.Clients[2].Crash(test.Context, &emptypb.Empty{})
+	test.Clients[3].Crash(test.Context, &emptypb.Empty{})
+	test.Clients[4].Crash(test.Context, &emptypb.Empty{})
+	// fmt.println("All crash")
+
+
+	//client1 syncs
+	err = SyncClient("localhost:8080", "test0", BLOCK_SIZE, cfgPath)
+	if err != nil {
+		t.Fatalf("Sync failed")
+	}
+	// fmt.println("Client 1 sync done")
 }

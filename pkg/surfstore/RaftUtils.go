@@ -69,7 +69,7 @@ func ServeRaftServer(server *RaftSurfstore) error {
 	if err != nil {
 		return err
 	}
-	// fmt.Println("Raft Server listening")
+	// // fmt.println("Raft Server listening")
 	err = grpcServer.Serve(listener)
 	if err != nil {
 		return err

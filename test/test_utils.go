@@ -153,7 +153,7 @@ func AppendFile(filename, message string) error {
 	f, err := os.OpenFile(filename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 
 	if err != nil {
-		fmt.Println(err)
+		// fmt.println(err)
 		return err
 	}
 	defer f.Close()
@@ -173,7 +173,7 @@ func DeleteFile(filename string) error {
 func CopyFile(sourceFile, destinationFile string) error {
 	input, err := ioutil.ReadFile(sourceFile)
 	if err != nil {
-		fmt.Println(err)
+		// fmt.println(err)
 		return err
 	}
 
@@ -181,8 +181,8 @@ func CopyFile(sourceFile, destinationFile string) error {
 	defer emptyFile.Close()
 	err = ioutil.WriteFile(destinationFile, input, 0644)
 	if err != nil {
-		fmt.Println("Error creating", destinationFile)
-		fmt.Println(err)
+		// fmt.println("Error creating", destinationFile)
+		// fmt.println(err)
 		return err
 	}
 	return nil

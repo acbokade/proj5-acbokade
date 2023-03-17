@@ -27,7 +27,7 @@ func TestRaftSetLeader(t *testing.T) {
 	for idx, server := range test.Clients {
 		// all should have the leaders term
 		state, _ := server.GetInternalState(test.Context, &emptypb.Empty{})
-		// fmt.Println("state", idx, state)
+		// // fmt.println("state", idx, state)
 		if state == nil {
 			t.Fatalf("Could not get state")
 		}

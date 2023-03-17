@@ -62,12 +62,12 @@ func (m *MetaStore) GetBlockStoreMap(ctx context.Context, blockHashesIn *BlockHa
 	var blockStoreMap *BlockStoreMap = &BlockStoreMap{}
 	blockStoreMap.BlockStoreMap = make(map[string]*BlockHashes)
 	var blockHashes map[string]*BlockHashes = make(map[string]*BlockHashes)
-	// fmt.Println("GetBlockStoreMap blockHashesIn", blockHashesIn)
+	// // fmt.println("GetBlockStoreMap blockHashesIn", blockHashesIn)
 	// log.Println("Metastore blockHashesIn length", len(blockHashesIn.Hashes))
 	for _, blockHashIn := range blockHashesIn.Hashes {
 		m.rwMutex.RLock()
 		responsibleServer := m.ConsistentHashRing.GetResponsibleServer(blockHashIn)
-		// fmt.Println("GetBlockStoreMap responsibleServer", responsibleServer)
+		// // fmt.println("GetBlockStoreMap responsibleServer", responsibleServer)
 		m.rwMutex.RUnlock()
 		_, exists := blockHashes[responsibleServer]
 		if exists {
@@ -89,7 +89,7 @@ func (m *MetaStore) GetBlockStoreMap(ctx context.Context, blockHashesIn *BlockHa
 	}
 	// log.Println("blockStoreMap", blockStoreMap.BlockStoreMap)
 	// blockStoreMap.BlockStoreMap = blockHashes
-	// fmt.Println("GetBlockStoreMap blockStoreMap", blockStoreMap)
+	// // fmt.println("GetBlockStoreMap blockStoreMap", blockStoreMap)
 	return blockStoreMap, nil
 }
 

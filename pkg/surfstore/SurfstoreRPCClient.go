@@ -3,12 +3,13 @@ package surfstore
 import (
 	context "context"
 	"database/sql"
-	"log"
-	"os"
-	"time"
 	// "fmt"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"log"
+	"os"
+	"time"
+	"errors"
 )
 
 type RPCClient struct {
@@ -112,10 +113,13 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		fileInfoMap, err := rpcClient.GetFileInfoMap(ctx, &emptypb.Empty{})
+		// // fmt.println("from client fileInfoMap - ", fileInfoMap)
 		if err != nil {
 			conn.Close()
-			if err == ERR_SERVER_CRASHED{
-				return err
+			// // fmt.println("*", ctx.Err())
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				// // fmt.println("Is function: Both errors are equal")
+				return ctx.Err()
 			}
 			continue
 		}
@@ -139,9 +143,6 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		version, err := rpcClient.UpdateFile(ctx, fileMetaData)
 		if err != nil {
 			conn.Close()
-			if err == ERR_SERVER_CRASHED{
-				return err
-			}
 			continue
 		}
 		*latestVersion = version.Version
@@ -166,9 +167,9 @@ func (surfClient *RPCClient) GetBlockStoreMap(blockHashesIn []string, blockStore
 		retBlockStoreMap, err := rpcClient.GetBlockStoreMap(ctx, blockHashes)
 		if err != nil {
 			conn.Close()
-			if err == ERR_SERVER_CRASHED{
-				return err
-			}
+			// if err == ERR_SERVER_CRASHED {
+			// 	return err
+			// }
 			continue
 		}
 		(*blockStoreMap) = make(map[string][]string)
@@ -199,9 +200,9 @@ func (surfClient *RPCClient) GetBlockStoreAddrs(blockStoreAddrs *[]string) error
 		retBlockStoreAddr, err := rpcClient.GetBlockStoreAddrs(ctx, &emptypb.Empty{})
 		if err != nil {
 			conn.Close()
-			if err == ERR_SERVER_CRASHED{
-				return err
-			}
+			// if err == ERR_SERVER_CRASHED {
+			// 	return err
+			// }
 			continue
 		}
 		*blockStoreAddrs = append(*blockStoreAddrs, retBlockStoreAddr.BlockStoreAddrs...)
@@ -265,7 +266,7 @@ func NewSurfstoreRPCClient(addrs []string, baseDir string, blockSize int) RPCCli
 			log.Fatal("Error while creating index db file", err)
 		}
 	}
-	// fmt.Println("created rpc client")
+	// // fmt.println("created rpc client")
 	return RPCClient{
 		MetaStoreAddrs: addrs,
 		BaseDir:        baseDir,
