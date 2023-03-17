@@ -152,7 +152,7 @@ func TestSyncTwoClientsClusterFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Sync failed")
 	}
-	// fmt.println("Client 1 sync done")
+	fmt.Println("Client 1 sync done")
 	test.Clients[0].SendHeartbeat(test.Context, &emptypb.Empty{})
 	// // // fmt.println("states of servers")
 	// test.Clients[0].GetInternalState(test.Context, &emptypb.Empty{})
@@ -165,7 +165,7 @@ func TestSyncTwoClientsClusterFailure(t *testing.T) {
 	// // fmt.println("1 leader set and send heartbeat done")
 	//client2 syncs
 	err = SyncClient("localhost:8080", "test1", BLOCK_SIZE, cfgPath)
-	// fmt.println("Client 2 sync done")
+	fmt.Println("Client 2 sync done")
 	if err != nil {
 		t.Fatalf("Sync failed")
 	}
@@ -176,7 +176,7 @@ func TestSyncTwoClientsClusterFailure(t *testing.T) {
 	test.Clients[2].Crash(test.Context, &emptypb.Empty{})
 	test.Clients[3].Crash(test.Context, &emptypb.Empty{})
 	test.Clients[4].Crash(test.Context, &emptypb.Empty{})
-	// fmt.println("All crash")
+	fmt.Println("All crash")
 
 	//client1 syncs
 	err = SyncClient("localhost:8080", "test0", BLOCK_SIZE, cfgPath)
