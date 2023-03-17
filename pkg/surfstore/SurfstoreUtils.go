@@ -1,14 +1,14 @@
 package surfstore
 
 import (
+	context "context"
+	"errors"
+	// "fmt"
 	"io/ioutil"
 	"log"
 	"math"
 	"os"
 	"path/filepath"
-	// "fmt"
-	"errors"
-	context "context"
 )
 
 // Returns number of blocks occupied by the file
@@ -100,7 +100,8 @@ func ClientSync(client RPCClient) {
 	var remoteIndex = make(map[string]*FileMetaData)
 	// // fmt.println("to call fileInfoMap")
 	err = client.GetFileInfoMap(&remoteIndex)
-	if errors.Is(err, context.DeadlineExceeded){
+	if errors.Is(err, context.DeadlineExceeded) {
+		// fmt.Println("Majority of servers crashed")
 		log.Fatal("Majority of servers crashed")
 	}
 	// fmt.println("done fileInfoMap")

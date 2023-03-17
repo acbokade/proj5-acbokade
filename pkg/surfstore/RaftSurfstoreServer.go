@@ -219,13 +219,13 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 			break
 		}
 		// Check crash
-		s.isCrashedMutex.RLock()
-		if s.isCrashed {
-			response <- false
-			s.isCrashedMutex.RUnlock()
-			return
-		}
-		s.isCrashedMutex.RUnlock()
+		// s.isCrashedMutex.RLock()
+		// if s.isCrashed {
+		// 	response <- false
+		// 	s.isCrashedMutex.RUnlock()
+		// 	return
+		// }
+		// s.isCrashedMutex.RUnlock()
 	}
 	// outputTerm := appendEntryOutput.Term
 	if err == nil {
@@ -515,7 +515,9 @@ func (s *RaftSurfstore) checkMajorityOfNodesActive(ctx context.Context) bool {
 // }
 
 func (s *RaftSurfstore) GetInternalState(ctx context.Context, empty *emptypb.Empty) (*RaftInternalState, error) {
+	// fmt.Println("entered getinternalstate")
 	fileInfoMap, _ := s.metaStore.GetFileInfoMap(ctx, empty)
+	// fmt.Println("fileInfoMap", fileInfoMap)
 	s.isLeaderMutex.RLock()
 	state := &RaftInternalState{
 		IsLeader: s.isLeader,
