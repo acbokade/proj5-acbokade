@@ -131,13 +131,14 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	go s.sendToAllFollowersInParallel(ctx)
 	// Keep trying indefinitely (even after responding) ** rely on sendhearbeat
 	// Commit the entry once majority of followers have it in their log
-	commit := <-commitChan
+	// commit := <-commitChan
 	// fmt.Println("received commit from commitChan")
 	// Once committed, apply to the state machine
-	if commit {
-		return s.metaStore.UpdateFile(ctx, filemeta)
-	}
-	return nil, nil
+	// if commit {
+	// 	return s.metaStore.UpdateFile(ctx, filemeta)
+	// }
+	return s.metaStore.UpdateFile(ctx, filemeta)
+	// return nil, nil
 }
 
 func (s *RaftSurfstore) sendToAllFollowersInParallel(ctx context.Context) {
