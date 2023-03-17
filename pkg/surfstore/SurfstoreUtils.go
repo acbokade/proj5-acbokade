@@ -149,7 +149,7 @@ func ClientSync(client RPCClient) {
 	// if err == ERR_SERVER_CRASHED {
 	// 	log.Fatal("Server crashed")
 	// }
-	fmt.Println("done blockStoreAddrs")
+	// fmt.Println("done blockStoreAddrs")
 
 	// Check the blocks to be downloaded
 	for fileToDownload := range filesToDownload {
