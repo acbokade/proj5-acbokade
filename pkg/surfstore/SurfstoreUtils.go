@@ -104,7 +104,7 @@ func ClientSync(client RPCClient) {
 		// fmt.Println("Majority of servers crashed")
 		log.Fatal("Majority of servers crashed")
 	}
-	// fmt.println("done fileInfoMap")
+	// fmt.Println("done fileInfoMap")
 	// log.Println("remoteIndex", remoteIndex)
 
 	// Files which are present in remoteIndex and not in localIndex needs to be downloaded
@@ -149,7 +149,7 @@ func ClientSync(client RPCClient) {
 	// if err == ERR_SERVER_CRASHED {
 	// 	log.Fatal("Server crashed")
 	// }
-	// fmt.println("done blockStoreAddrs")
+	fmt.Println("done blockStoreAddrs")
 
 	// Check the blocks to be downloaded
 	for fileToDownload := range filesToDownload {

@@ -35,7 +35,6 @@ type RaftSurfstore struct {
 
 func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty) (*FileInfoMap, error) {
 	// Check crash
-	// // fmt.println("server GetFileInfoMap 1")
 	s.isCrashedMutex.RLock()
 	if s.isCrashed {
 		s.isCrashedMutex.RUnlock()
@@ -43,7 +42,6 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 		return nil, ERR_SERVER_CRASHED
 	}
 	s.isCrashedMutex.RUnlock()
-	// // fmt.println("server GetFileInfoMap 2")
 	// If not a leader, return error
 	s.isLeaderMutex.RLock()
 	if !s.isLeader {
@@ -51,7 +49,7 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 		return nil, ERR_NOT_LEADER
 	}
 	s.isLeaderMutex.RUnlock()
-	// // fmt.println("server GetFileInfoMap 3")
+	// fmt.Println("server GetFileInfoMap 3")
 	// fmt.Println("fileInfoMap call to", s.id)
 	// Check if majority of nodes are active, if not, block
 	for {
@@ -59,6 +57,7 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 			break
 		}
 	}
+	// fmt.Println("Majority active")
 	// fmt.println("from server fileInfoMap - ", fileInfoMap)
 	return s.metaStore.GetFileInfoMap(ctx, empty)
 }
@@ -501,7 +500,7 @@ func (s *RaftSurfstore) checkMajorityOfNodesActive(ctx context.Context) bool {
 			crashedCount++
 		}
 	}
-	// fmt.println("crash count", crashedCount)
+	// fmt.Println("crash count", crashedCount)
 	if crashedCount <= len(s.peers)/2 {
 		return true
 	}

@@ -110,13 +110,14 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 		}
 		rpcClient := NewRaftSurfstoreClient(conn)
 		// perform the call
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		fileInfoMap, err := rpcClient.GetFileInfoMap(ctx, &emptypb.Empty{})
-		// // fmt.println("from client fileInfoMap - ", fileInfoMap)
+		// fmt.Println("from client fileInfoMap - ", fileInfoMap)
 		if err != nil {
 			conn.Close()
-			// // fmt.println("*", ctx.Err())
+			// fmt.Println("err", err)
+			// fmt.Println("*", ctx.Err())
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				// // fmt.println("Is function: Both errors are equal")
 				return ctx.Err()

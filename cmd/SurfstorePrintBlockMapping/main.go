@@ -82,7 +82,7 @@ func PrintBlocksOnEachServer(client surfstore.RPCClient) {
 
 	result := "{"
 	for _, addr := range allAddrs {
-		// fmt.Println("Block Server: ", addr)
+		fmt.Println("Block Server: ", addr)
 		hashes := []string{}
 		if err = client.GetBlockHashes(addr, &hashes); err != nil {
 			log.Fatal("[Surfstore RPCClient]:", "Error During Fetching Blocks on Block Server ", err)

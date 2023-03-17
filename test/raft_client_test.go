@@ -227,7 +227,7 @@ func TestRaftNewLeaderPushesUpdates(t *testing.T) {
 	// 	// fmt.Println("updatefile err", err, version)
 	// 	// t.Fatalf("UpdateFile failed")
 	// }
-	fmt.Println("Update file done")
+	// fmt.Println("Update file done")
 
 	// prevstate0, _ := test.Clients[0].GetInternalState(test.Context, &emptypb.Empty{})
 	// fmt.Println("Server 0 state")
@@ -246,7 +246,7 @@ func TestRaftNewLeaderPushesUpdates(t *testing.T) {
 
 	test.Clients[0].SendHeartbeat(test.Context, &emptypb.Empty{})
 	test.Clients[0].Crash(test.Context, &emptypb.Empty{})
-	fmt.Println("0 crashed")
+	// fmt.Println("0 crashed")
 
 	// other nodes (2,3,4) restore
 	test.Clients[2].Restore(test.Context, &emptypb.Empty{})
