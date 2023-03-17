@@ -52,6 +52,7 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 	}
 	s.isLeaderMutex.RUnlock()
 	// // fmt.println("server GetFileInfoMap 3")
+	// fmt.Println("fileInfoMap call to", s.id)
 	// Check if majority of nodes are active, if not, block
 	for {
 		if s.checkMajorityOfNodesActive(ctx) {
@@ -313,10 +314,11 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	for idx, entry := range s.log {
 		// s.commitIndex = int64(idx)//?
 		if idx >= len(entries) {
-			// delete remaining
+			// delete after conflicting
 			s.log = s.log[:idx]
 			break
 		}
+		// delete after conflicting
 		if !SameOperation(entry, entries[idx]) || entry.Term != entries[idx].Term {
 			s.log = s.log[:idx]
 			updateEntries = entries[idx:]
@@ -333,17 +335,18 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 	// // fmt.println("updateEntries length slog length sid", len(updateEntries), len(s.log), s.id)
 	// // fmt.println("case 4 onwards", s.id)
 	// Case 4
+	// Append any new entries
 	s.log = append(s.log, updateEntries...)
-	s.commitIndex = int64(len(s.log)) - 1
+	// s.commitIndex = int64(len(s.log)) - 1
 
 	// // fmt.println("case 5 onwards", s.id)
 	// Case 5
 	if s.commitIndex < leaderCommitIndex {
-		s.commitIndex = int64(math.Min(float64(leaderCommitIndex), float64(len(s.log)-1)))
+		s.commitIndex = int64(math.Min(float64(leaderCommitIndex), float64(len(s.log))))
 	}
 	// Term can also differ
-	for s.lastApplied+1 <= s.commitIndex {
-		entry := s.log[s.lastApplied+1]
+	for s.lastApplied < s.commitIndex {
+		entry := s.log[s.lastApplied]
 		s.metaStore.UpdateFile(ctx, entry.FileMetaData)
 		s.lastApplied++
 	}
