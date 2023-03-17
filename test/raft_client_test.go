@@ -276,4 +276,28 @@ func TestRaftNewLeaderPushesUpdates(t *testing.T) {
 	fmt.Println("Term", state1.Term)
 	fmt.Println("Log", state1.Log)
 	fmt.Println("MetaMap", state1.MetaMap.FileInfoMap)
+
+	state2, _ := test.Clients[2].GetInternalState(test.Context, &emptypb.Empty{})
+
+	fmt.Println("Server 2 state")
+	fmt.Println("isLeader", state2.IsLeader)
+	fmt.Println("Term", state2.Term)
+	fmt.Println("Log", state2.Log)
+	fmt.Println("MetaMap", state2.MetaMap.FileInfoMap)
+
+	state3, _ := test.Clients[3].GetInternalState(test.Context, &emptypb.Empty{})
+
+	fmt.Println("Server 3 state")
+	fmt.Println("isLeader", state3.IsLeader)
+	fmt.Println("Term", state3.Term)
+	fmt.Println("Log", state3.Log)
+	fmt.Println("MetaMap", state3.MetaMap.FileInfoMap)
+
+	state4, _ := test.Clients[4].GetInternalState(test.Context, &emptypb.Empty{})
+
+	fmt.Println("Server 4 state")
+	fmt.Println("isLeader", state4.IsLeader)
+	fmt.Println("Term", state4.Term)
+	fmt.Println("Log", state4.Log)
+	fmt.Println("MetaMap", state4.MetaMap.FileInfoMap)
 }

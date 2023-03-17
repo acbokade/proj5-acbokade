@@ -219,13 +219,13 @@ func (s *RaftSurfstore) sendToFollower(ctx context.Context, addr string, respons
 			break
 		}
 		// Check crash
-		// s.isCrashedMutex.RLock()
-		// if s.isCrashed {
-		// 	response <- false
-		// 	s.isCrashedMutex.RUnlock()
-		// 	return
-		// }
-		// s.isCrashedMutex.RUnlock()
+		s.isCrashedMutex.RLock()
+		if s.isCrashed {
+			response <- false
+			s.isCrashedMutex.RUnlock()
+			return
+		}
+		s.isCrashedMutex.RUnlock()
 	}
 	// outputTerm := appendEntryOutput.Term
 	if err == nil {
